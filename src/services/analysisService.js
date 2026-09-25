@@ -1,49 +1,80 @@
-import { mockAnalysis } from '../data/mockData'
+/**
+ * Analysis Service Interface
+ *
+ * The analysis service is intentionally provider-agnostic.
+ * The current implementation uses mock data via mockAnalysisProvider.
+ * A future IBM Bob-powered provider should return the same canonical analysis result structure.
+ */
+
+import { generateMockAnalysis } from './mockAnalysisProvider'
 
 /**
- * Clean interface for change analysis.
- * Can be swapped with real IBM Bob / backend service seamlessly.
+ * Validates analysis input parameters before submitting.
  *
- * @param {Object} params
- * @param {string} params.repository
- * @param {string} params.branch
- * @param {string} [params.changeDescription]
- * @param {string} [params.change]
- * @param {string} [params.pr]
- * @param {string} [params.context]
- * @returns {Promise<Object>} Consistent analysis result structure
+ * @param {Object} input
+ * @throws {Error} If required parameters are missing or invalid.
  */
-export async function analyzeChange({
-  repository = 'ShopFlow',
-  branch = 'feature/oauth-migration',
-  changeDescription,
-  change,
-  pr,
-  context,
-} = {}) {
-  const description = changeDescription || change || mockAnalysis.change
+function validateAnalysisInput(input) {
+  if (!input || typeof input !== 'object') {
+    throw new Error('Analysis input must be a valid object.')
+  }
 
-  // Simulate network & AI processing delay for mock backend execution (~2.2s)
-  await new Promise((resolve) => setTimeout(resolve, 2200))
+  const repo = input.repository
+  if (!repo || !String(repo).trim()) {
+    throw new Error('Repository is required for change analysis.')
+  }
 
-  return {
-    ...mockAnalysis,
-    id: `impact-2026-oauth-01`,
-    repository,
-    branch,
-    change: description,
-    pr: pr || undefined,
-    context: context || undefined,
+  const branch = input.branch
+  if (!branch || !String(branch).trim()) {
+    throw new Error('Branch is required for change analysis.')
+  }
+
+  const description = input.changeDescription || input.change
+  if (!description || !String(description).trim()) {
+    throw new Error('Proposed change description is required for analysis.')
   }
 }
 
 /**
- * Retrieve existing analysis by ID.
+ * Analyzes a proposed code change asynchronously.
+ *
+ * Expected input structure:
+ * {
+ *   repository: string (required),
+ *   branch: string (required),
+ *   changeDescription: string (required),
+ *   pullRequest?: string,
+ *   commit?: string,
+ *   context?: string
+ * }
+ *
+ * @param {Object} input
+ * @returns {Promise<Object>} Canonical Analysis Result structure
+ */
+export async function analyzeChange(input = {}) {
+  // Validate input parameters
+  validateAnalysisInput(input)
+
+  // Currently dispatches to mockAnalysisProvider.
+  // FUTURE IBM BOB INTEGRATION POINT:
+  // return await ibmBobAnalysisProvider.analyze(input);
+  return await generateMockAnalysis(input)
+}
+
+/**
+ * Retrieves an existing analysis by ID asynchronously.
  *
  * @param {string|number} id
- * @returns {Promise<Object>}
+ * @returns {Promise<Object>} Canonical Analysis Result structure
  */
 export async function getAnalysis(id) {
-  await new Promise((resolve) => setTimeout(resolve, 350))
-  return { ...mockAnalysis, id }
+  if (!id) {
+    throw new Error('Analysis ID is required to retrieve result.')
+  }
+
+  return await generateMockAnalysis({
+    repository: 'ShopFlow',
+    branch: 'feature/oauth-migration',
+    changeDescription: 'Replace the existing email/password authentication flow with OAuth 2.0 authentication.',
+  })
 }
