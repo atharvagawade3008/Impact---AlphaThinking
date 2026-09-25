@@ -6,7 +6,9 @@ import { PageHeader, SelectField } from '../components'
 export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
   const [repo, setRepo] = useState(repositories[0].name)
   const [branch, setBranch] = useState(repositories[0].branch)
-  const [change, setChange] = useState('')
+  const [change, setChange] = useState(
+    'Replace the existing email/password authentication flow with OAuth 2.0 authentication.'
+  )
   const [pr, setPr] = useState('')
   const [context, setContext] = useState('')
   const [error, setError] = useState('')
@@ -55,7 +57,7 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
             options={
               repositories.find((item) => item.name === repo)?.branch === branch
                 ? [branch, 'feature/oauth-migration', 'staging']
-                : [branch]
+                : [branch, 'main', 'develop']
             }
             onChange={setBranch}
           />

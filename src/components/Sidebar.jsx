@@ -7,10 +7,10 @@ import { Logo } from './Logo'
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'analyze', label: 'Analyze change', icon: Sparkles },
-  { id: 'impact', label: 'Impact map', icon: Box, disabled: true },
-  { id: 'risk', label: 'Risk analysis', icon: ShieldAlert, disabled: true },
-  { id: 'tests', label: 'Test recommendations', icon: BookOpenCheck, disabled: true },
-  { id: 'readiness', label: 'Release readiness', icon: Activity, disabled: true },
+  { id: 'impact', label: 'Impact map', icon: Box },
+  { id: 'risk', label: 'Risk analysis', icon: ShieldAlert },
+  { id: 'tests', label: 'Test recommendations', icon: BookOpenCheck },
+  { id: 'readiness', label: 'Release readiness', icon: Activity },
   { id: 'history', label: 'Analysis history', icon: Clock3 },
 ]
 
@@ -25,16 +25,14 @@ export function Sidebar({ page, onNavigate, open, onClose }) {
       </div>
       <div className="workspace-label">WORKSPACE</div>
       <nav>
-        {navItems.map(({ id, label, icon: Icon, disabled }) => (
+        {navItems.map(({ id, label, icon: Icon }) => (
           <button
-            className={`nav-item ${page === id ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-            disabled={disabled}
+            className={`nav-item ${page === id ? 'active' : ''}`}
             key={id}
             onClick={() => onNavigate(id)}
           >
             <Icon size={17} />
             <span>{label}</span>
-            {disabled && <span className="soon">Soon</span>}
           </button>
         ))}
       </nav>

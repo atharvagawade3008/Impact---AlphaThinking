@@ -1,6 +1,7 @@
 export {
   ActivityTimeline,
   AnalysisPipeline,
+  AnalysisResultHeader,
   AnalysisTable,
   EmptyState,
   ImpactNode,

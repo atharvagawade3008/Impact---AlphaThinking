@@ -6,6 +6,10 @@ import { useAnalysis } from './hooks/useAnalysis'
 import DashboardPage from './pages/DashboardPage'
 import AnalyzePage from './pages/AnalyzePage'
 import AnalysisResultsPage from './pages/AnalysisResultsPage'
+import ImpactMapPage from './pages/ImpactMapPage'
+import RiskAnalysisPage from './pages/RiskAnalysisPage'
+import TestRecommendationsPage from './pages/TestRecommendationsPage'
+import ReleaseReadinessPage from './pages/ReleaseReadinessPage'
 import HistoryPage from './pages/HistoryPage'
 import SettingsPage from './pages/SettingsPage'
 
@@ -15,7 +19,6 @@ function App() {
   const { analysis, isLoading, analyze } = useAnalysis()
 
   const navigate = (nextPage) => {
-    if (['impact', 'risk', 'tests', 'readiness'].includes(nextPage)) return
     setPage(nextPage)
     setSidebarOpen(false)
   }
@@ -28,9 +31,9 @@ function App() {
   const viewAnalysis = () => {
     if (!analysis) {
       handleAnalyze({
-        repository: 'platform / identity-service',
-        branch: 'develop',
-        changeDescription: 'Replace the existing authentication system with OAuth 2.0.',
+        repository: 'ShopFlow',
+        branch: 'feature/oauth-migration',
+        changeDescription: 'Replace the existing email/password authentication flow with OAuth 2.0 authentication.',
       })
     } else {
       setPage('results')
@@ -40,7 +43,7 @@ function App() {
   return (
     <div className="app-shell">
       <Sidebar
-        page={page === 'results' ? 'dashboard' : page}
+        page={page}
         onNavigate={navigate}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -68,6 +71,14 @@ function App() {
             onBack={() => navigate('dashboard')}
             onNavigate={navigate}
           />
+        ) : page === 'impact' ? (
+          <ImpactMapPage analysis={analysis} onNavigate={navigate} />
+        ) : page === 'risk' ? (
+          <RiskAnalysisPage analysis={analysis} onNavigate={navigate} />
+        ) : page === 'tests' ? (
+          <TestRecommendationsPage analysis={analysis} onNavigate={navigate} />
+        ) : page === 'readiness' ? (
+          <ReleaseReadinessPage analysis={analysis} onNavigate={navigate} />
         ) : page === 'history' ? (
           <HistoryPage onNavigate={navigate} onViewAnalysis={viewAnalysis} />
         ) : (

@@ -14,8 +14,8 @@ import { mockAnalysis } from '../data/mockData'
  * @returns {Promise<Object>} Consistent analysis result structure
  */
 export async function analyzeChange({
-  repository = 'platform / identity-service',
-  branch = 'develop',
+  repository = 'ShopFlow',
+  branch = 'feature/oauth-migration',
   changeDescription,
   change,
   pr,
@@ -23,12 +23,12 @@ export async function analyzeChange({
 } = {}) {
   const description = changeDescription || change || mockAnalysis.change
 
-  // Simulate network delay for mock backend execution
-  await new Promise((resolve) => setTimeout(resolve, 900))
+  // Simulate network & AI processing delay for mock backend execution (~2.2s)
+  await new Promise((resolve) => setTimeout(resolve, 2200))
 
   return {
     ...mockAnalysis,
-    id: `impact-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`,
+    id: `impact-2026-oauth-01`,
     repository,
     branch,
     change: description,

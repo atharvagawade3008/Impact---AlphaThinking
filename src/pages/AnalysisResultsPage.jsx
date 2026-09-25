@@ -1,38 +1,47 @@
-import { ArrowLeft, Check, ChevronRight, CircleAlert, ExternalLink } from 'lucide-react'
-import { ImpactNode, RiskBadge, SectionHeading, StatusBadge } from '../components'
+import { Check, ChevronRight, CircleAlert } from 'lucide-react'
+import {
+  AnalysisResultHeader,
+  EmptyState,
+  ImpactNode,
+  RiskBadge,
+  SectionHeading,
+  StatusBadge,
+} from '../components'
 
 export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
-  if (!analysis) return null
+  if (!analysis) {
+    return (
+      <div className="page-content">
+        <EmptyState
+          title="No active analysis"
+          detail="Submit a proposed change to view change impact, risk evaluation, and recommended tests."
+          action={
+            <button className="button primary" onClick={() => onNavigate('analyze')}>
+              Start new analysis
+            </button>
+          }
+        />
+      </div>
+    )
+  }
+
+  const nodes = analysis.impactMap?.nodes || [
+    { label: 'Proposed Change', value: 'OAuth 2.0 Migration', tone: 'cyan' },
+    { label: 'Direct Service', value: 'Auth Service (OAuthProvider)', tone: 'blue' },
+    { label: 'Downstream Core', value: 'Session Manager · Gateway', tone: 'amber' },
+    { label: 'User Surface', value: 'Login UI · Auth Checks', tone: 'amber' },
+    { label: 'Recommended Tests', value: '8 Tests (5 P0 / 3 P1)', tone: 'green', last: true },
+  ]
 
   return (
     <div className="page-content results-page">
-      <div className="result-top">
-        <button className="back-link" onClick={onBack}>
-          <ArrowLeft size={15} /> Back to analyses
-        </button>
-        <div className="result-actions">
-          <button className="button ghost">
-            Export report <ExternalLink size={14} />
-          </button>
-          <button className="button primary" onClick={() => onNavigate('analyze')}>
-            New analysis
-          </button>
-        </div>
-      </div>
-      <div className="result-heading">
-        <div>
-          <span className="eyebrow">
-            Analysis #{analysis.id} / Completed {analysis.timestamp}
-          </span>
-          <h1>{analysis.change}</h1>
-          <div className="result-meta">
-            <span>{analysis.repository}</span>
-            <span>{analysis.branch}</span>
-            <span>Mock result</span>
-          </div>
-        </div>
-        <RiskBadge risk={analysis.overallRisk} />
-      </div>
+      <AnalysisResultHeader
+        analysis={analysis}
+        activeTab="results"
+        onNavigate={onNavigate}
+        onBack={onBack}
+      />
+
       <section className="summary-strip">
         {analysis.summary.map(([label, value, detail]) => (
           <div key={label}>
@@ -42,22 +51,41 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
           </div>
         ))}
       </section>
+
       <section className="panel impact-map-panel">
         <SectionHeading
           eyebrow="Dependency surface"
           title="Impact map"
-          action={<span className="muted-label">5 relationship layers</span>}
+          action={
+            <button className="text-button" onClick={() => onNavigate('impact')}>
+              View full map <ChevronRight size={14} />
+            </button>
+          }
         />
         <div className="impact-map">
-          <ImpactNode label="Changed component" value="AuthProvider" tone="cyan" />
-          <ImpactNode label="Affected services" value="API Gateway · User Service" tone="blue" />
-          <ImpactNode label="Affected modules" value="Session · Permissions · Billing" tone="amber" />
-          <ImpactNode label="Affected tests" value="18 recommended tests" tone="green" last />
+          {nodes.map((node, index) => (
+            <ImpactNode
+              key={node.label}
+              label={node.label}
+              value={node.value}
+              tone={node.tone}
+              last={index === nodes.length - 1 || node.last}
+            />
+          ))}
         </div>
       </section>
+
       <div className="results-grid">
         <section className="panel">
-          <SectionHeading eyebrow="Signal review" title="Risk analysis" />
+          <SectionHeading
+            eyebrow="Signal review"
+            title="Risk analysis"
+            action={
+              <button className="text-button" onClick={() => onNavigate('risk')}>
+                View all risks <ChevronRight size={14} />
+              </button>
+            }
+          />
           {analysis.risks.map((risk) => (
             <div className="risk-row" key={risk.title}>
               <div className={`risk-score ${risk.tone}`}>
@@ -67,7 +95,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
               <div className="risk-copy">
                 <div>
                   <strong>{risk.title}</strong>
-                  <StatusBadge tone={risk.tone}>{risk.status}</StatusBadge>
+                  <StatusBadge tone={risk.tone}>{risk.severity || risk.status}</StatusBadge>
                 </div>
                 <p>{risk.description}</p>
                 <div className="risk-bar">
@@ -77,32 +105,42 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             </div>
           ))}
         </section>
+
         <section className="panel readiness-panel">
-          <SectionHeading eyebrow="Go / no-go" title="Release readiness" />
+          <SectionHeading
+            eyebrow="Go / no-go"
+            title="Release readiness"
+            action={
+              <button className="text-button" onClick={() => onNavigate('readiness')}>
+                Details <ChevronRight size={14} />
+              </button>
+            }
+          />
           <div className="readiness-status">
             <CircleAlert size={20} />
             <div>
-              <strong>Review needed</strong>
-              <span>Not ready to ship</span>
+              <strong>{analysis.readinessStatus || 'Review needed'}</strong>
+              <span>Not ready to ship · {analysis.verificationStatus || '0/8 verified'}</span>
             </div>
           </div>
           <div className="readiness-block">
             <span>Why</span>
-            <p>High architecture and security risk requires validation of the new identity boundary.</p>
+            <p>High architecture and security risk requires validation of the new OAuth identity boundary.</p>
           </div>
           <div className="readiness-block">
             <span>Blocking issues</span>
-            <p>OAuth callback tests are not yet passing in the current branch.</p>
+            <p>OAuth callback state parameter validation tests are not yet executed.</p>
           </div>
           <div className="readiness-block">
             <span>Recommended actions</span>
             <p>Run P0 tests, verify redirect allowlists, and get platform security sign-off.</p>
           </div>
           <button className="button secondary full-button" onClick={() => onNavigate('tests')}>
-            View recommended tests <ChevronRight size={15} />
+            View recommended tests ({analysis.tests?.length || 8}) <ChevronRight size={15} />
           </button>
         </section>
       </div>
+
       <div className="results-grid lower-grid">
         <section className="panel">
           <SectionHeading eyebrow="Repository surface" title="Affected files" />
@@ -133,8 +171,17 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             </table>
           </div>
         </section>
+
         <section className="panel">
-          <SectionHeading eyebrow="Coverage plan" title="Recommended tests" />
+          <SectionHeading
+            eyebrow="Coverage plan"
+            title="Recommended tests"
+            action={
+              <button className="text-button" onClick={() => onNavigate('tests')}>
+                All tests ({analysis.tests?.length || 8}) <ChevronRight size={14} />
+              </button>
+            }
+          />
           <div className="test-list">
             {analysis.tests.map((test) => (
               <div className="test-item" key={test.name}>
