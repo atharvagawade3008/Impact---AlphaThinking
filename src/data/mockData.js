@@ -58,3 +58,21 @@ export const mockAnalysis = {
     { name: 'Provider outage fallback', reason: 'Validate graceful failure when identity provider is unavailable.', priority: 'P1', status: 'Recommended' },
   ],
 }
+
+export const settingsItems = [
+  { title: 'Repository configuration', detail: 'Manage repositories, branches, and access scopes' },
+  { title: 'Analysis preferences', detail: 'Set risk thresholds and default test coverage' },
+  { title: 'Notifications', detail: 'Choose when IMPACT sends review updates' },
+  { title: 'IBM Bob integration', detail: 'Configure the future analysis provider connection' },
+  { title: 'Theme', detail: 'Dark theme is active for this workspace' },
+]
+
+export const pipelineStages = [
+  'Repository',
+  'Understanding structure',
+  'Tracing dependencies',
+  'Checking risks',
+  'Preparing tests',
+  'Impact report',
+]
+
