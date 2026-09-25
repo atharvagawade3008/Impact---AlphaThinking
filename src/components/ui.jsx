@@ -35,7 +35,7 @@ export function SelectField({ label, value, options = [], onChange }) {
 }
 
 export function AnalysisTable({ analyses, onView }) {
-  return <div className="table-scroll"><table><thead><tr><th>Change</th><th>Repository</th><th>Files affected</th><th>Risk</th><th>Status</th><th>Date</th><th /></tr></thead><tbody>{analyses.map((analysis) => <tr key={analysis.id} onClick={() => onView?.(analysis)}><td><strong>{analysis.change}</strong><span className="table-id">#{String(analysis.id).padStart(4, '0')}</span></td><td><span className="repo-cell"><GitBranch size={13} />{analysis.repo}</span></td><td><span className="file-count"><FileCode2 size={14} />{analysis.files}</span></td><td><RiskBadge risk={analysis.risk} /></td><td><StatusBadge tone={analysis.status === 'Ready to ship' ? 'green' : 'amber'}>{analysis.status}</StatusBadge></td><td className="muted-cell">{analysis.date}</td><td><button className="icon-button" aria-label="Open analysis"><MoreHorizontal size={17} /></button></td></tr>)}</tbody></table></div>
+  return <div className="table-scroll"><table><thead><tr><th>Change</th><th>Repository</th><th>Files affected</th><th>Risk</th><th>Status</th><th>Date</th><th /></tr></thead><tbody>{analyses.map((analysis) => <tr className="analysis-row" key={analysis.id} onClick={() => onView?.(analysis)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onView?.(analysis) }} tabIndex={0}><td><strong>{analysis.change}</strong><span className="table-id">#{String(analysis.id).padStart(4, '0')}</span></td><td><span className="repo-cell"><GitBranch size={13} />{analysis.repo}</span></td><td><span className="file-count"><FileCode2 size={14} />{analysis.files}</span></td><td><RiskBadge risk={analysis.risk} /></td><td><StatusBadge tone={analysis.status === 'Ready to ship' ? 'green' : 'amber'}>{analysis.status}</StatusBadge></td><td className="muted-cell">{analysis.date}</td><td><button className="icon-button" aria-label={`Open analysis: ${analysis.change}`} onClick={(event) => { event.stopPropagation(); onView?.(analysis) }}><MoreHorizontal size={17} /></button></td></tr>)}</tbody></table></div>
 }
 
 export function ActivityTimeline({ items }) {
@@ -50,8 +50,13 @@ export function LoadingState() {
   return <div className="loading-state"><LoaderCircle className="spin" size={28} /><strong>Mapping change impact</strong><span>Reviewing repository relationships and test coverage...</span></div>
 }
 
-export function EmptyState({ title = 'Nothing here yet', detail = 'New activity will appear here.' }) {
-  return <div className="empty-state"><ShieldCheck size={25} /><strong>{title}</strong><span>{detail}</span></div>
+export function AnalysisPipeline() {
+  const stages = ['Repository', 'Understanding structure', 'Tracing dependencies', 'Checking risks', 'Preparing tests', 'Impact report']
+  return <div className="pipeline-card" role="status" aria-live="polite"><div className="pipeline-heading"><span className="pipeline-orb"><Sparkles size={18} /></span><div><strong>Preparing your impact report</strong><span>UI preview of the analysis workflow</span></div></div><div className="pipeline-list">{stages.map((stage, index) => <div className={`pipeline-stage stage-${index}`} key={stage}><span className="pipeline-marker">{index + 1}</span><span>{stage}</span>{index < stages.length - 1 && <i />}</div>)}</div></div>
+}
+
+export function EmptyState({ title = 'Nothing here yet', detail = 'New activity will appear here.', action }) {
+  return <div className="empty-state"><ShieldCheck size={25} /><div><strong>{title}</strong><span>{detail}</span></div>{action}</div>
 }
 
 export { AlertTriangle, Check, Clock3, FileCode2, GitBranch, Search, ShieldCheck, Sparkles, Terminal, XCircle, Zap }
