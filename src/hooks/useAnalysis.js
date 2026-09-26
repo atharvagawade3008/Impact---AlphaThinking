@@ -18,8 +18,10 @@ export function useAnalysis() {
       return result
     } catch (err) {
       const errorMsg = err?.message || 'Failed to analyze change.'
+      console.error('Analysis error:', err)
       setError(errorMsg)
-      throw err
+      // Do NOT rethrow — callers read the error state; rethrowing crashes React render tree
+      return null
     } finally {
       setIsLoading(false)
     }

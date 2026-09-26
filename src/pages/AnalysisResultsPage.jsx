@@ -25,13 +25,18 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
     )
   }
 
-  const nodes = analysis.impact?.nodes || [
+  const nodes = analysis.impact?.nodes || analysis.impactMap?.nodes || [
     { label: 'Proposed Change', value: analysis.scenarioTitle || 'OAuth 2.0 Migration', tone: 'cyan' },
     { label: 'Direct Service', value: 'Authentication (authService.js)', tone: 'blue' },
     { label: 'Auth Middleware', value: 'authMiddleware.js', tone: 'amber' },
     { label: 'Protected API Routes', value: 'User / Order / Payment Routes', tone: 'amber' },
     { label: 'Recommended Tests', value: `${analysis.tests?.length || 13} Tests`, tone: 'green', last: true },
   ]
+
+  const summary = analysis.summary || []
+  const risks = analysis.risks || []
+  const files = analysis.files || []
+  const tests = analysis.tests || []
 
   const readiness = analysis.releaseReadiness || {}
 
@@ -70,7 +75,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
       </div>
 
       <section className="summary-strip">
-        {analysis.summary.map(([label, value, detail]) => (
+        {summary.map(([label, value, detail]) => (
           <div key={label}>
             <span>{label}</span>
             <strong>{value}</strong>
@@ -113,7 +118,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
               </button>
             }
           />
-          {analysis.risks.slice(0, 4).map((risk) => (
+          {risks.slice(0, 4).map((risk) => (
             <div className="risk-row" key={risk.id || risk.title}>
               <div className={`risk-score ${risk.tone}`}>
                 <strong>{risk.score}</strong>
@@ -156,11 +161,25 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
           </div>
           <div className="readiness-block">
             <span>Blocking issues</span>
-            <p>{readiness.blockers?.[0] || 'Proposed changes have not been executed against regression test suites.'}</p>
+            <p>
+              {/* Bob evaluator: blockers is [{id, title, evidence, resolution}]; mock: strings */}
+              {readiness.blockers?.[0]
+                ? (typeof readiness.blockers[0] === 'string' ? readiness.blockers[0] : readiness.blockers[0].title)
+                : 'Proposed changes have not been executed against regression test suites.'}
+              {readiness.blockers?.length > 1 && ` (+${readiness.blockers.length - 1} more blockers)`}
+            </p>
           </div>
           <div className="readiness-block">
             <span>Recommended actions</span>
-            <p>{readiness.recommendedActions?.join(' ') || 'Execute recommended test suites and verify API contract compatibility.'}</p>
+            <p>
+              {/* Bob evaluator: requiredActions is [{phase, phaseTitle, actions:[{id, action}]}]
+                  Mock evaluator: recommendedActions is string[] */}
+              {readiness.requiredActions?.length
+                ? readiness.requiredActions[0]?.actions?.[0]?.action || readiness.requiredActions[0]?.phaseTitle
+                : readiness.recommendedActions?.length
+                ? (typeof readiness.recommendedActions[0] === 'string' ? readiness.recommendedActions.join(' ') : 'Review required.')
+                : 'Execute recommended test suites and verify API contract compatibility.'}
+            </p>
           </div>
           <button className="button secondary full-button" onClick={() => onNavigate('tests')}>
             View recommended tests ({analysis.tests?.length || 13}) <ChevronRight size={15} />
@@ -182,7 +201,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {analysis.files.map(([file, type, impact, reason]) => (
+                {files.map(([file, type, impact, reason]) => (
                   <tr key={file}>
                     <td>
                       <code className="file-code">{file}</code>
@@ -210,7 +229,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             }
           />
           <div className="test-list">
-            {analysis.tests.slice(0, 6).map((test) => (
+            {tests.slice(0, 6).map((test) => (
               <div className="test-item" key={test.id || test.name}>
                 <span className="test-check">
                   <Check size={13} />

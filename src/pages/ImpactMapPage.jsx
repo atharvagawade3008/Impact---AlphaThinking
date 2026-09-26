@@ -293,7 +293,7 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
                 </div>
                 <div className="impact-metric-row">
                   <span className="metric-label">Verification Status</span>
-                  <span className="metric-val text-amber">{analysis.verificationStatus}</span>
+                  <span className="metric-val text-amber">{analysis.verificationStatus || '0/13 verified (Not yet executed)'}</span>
                 </div>
               </div>
               <button

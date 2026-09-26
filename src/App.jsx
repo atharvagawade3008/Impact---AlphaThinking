@@ -30,8 +30,16 @@ function App() {
   }
 
   const handleAnalyze = async (input) => {
-    await analyze(input)
-    setPage('results')
+    try {
+      const result = await analyze(input)
+      // Only navigate to results if we actually got a valid analysis back
+      if (result) {
+        setPage('results')
+      }
+    } catch (err) {
+      // analyze() no longer rethrows, but guard here as a safety net
+      console.error('handleAnalyze error:', err)
+    }
   }
 
   const viewAnalysis = () => {
