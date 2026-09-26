@@ -57,7 +57,6 @@ export function transformBobAnalysis(input = {}) {
 
   const directCount = directlyAffected.length
   const indirectCount = indirectlyAffected.length
-  const totalCount = directCount + indirectCount
 
   const directModulesCount = affectedModules.filter((m) => m.impact === 'DIRECT').length
   const indirectModulesCount = affectedModules.filter((m) => m.impact === 'INDIRECT').length
@@ -71,16 +70,17 @@ export function transformBobAnalysis(input = {}) {
     ...indirectlyAffected.map((f) => [f.path, 'Indirectly Affected', f.impact, f.reason]),
   ]
 
-  // Risks transformation
+  // REAL IBM BOB RISKS (7 Risk Findings)
   const risks = (bobData.risks || []).map((r) => {
     const isHigh = r.severity === 'HIGH'
     const isMedium = r.severity === 'MEDIUM'
     return {
-      id: r.id,
+      id: r.id, // e.g. "RISK-001"
       title: r.title,
-      severity: isHigh ? 'High' : isMedium ? 'Medium' : 'Low',
-      status: isHigh ? 'High' : isMedium ? 'Medium' : 'Low',
-      score: isHigh ? 88 : isMedium ? 65 : 45,
+      severity: r.severity, // "HIGH", "MEDIUM", "LOW"
+      displaySeverity: isHigh ? 'High' : isMedium ? 'Medium' : 'Low',
+      status: 'Unresolved', // Proposed change risk finding
+      score: isHigh ? 88 : isMedium ? 65 : 42,
       tone: isHigh ? 'red' : isMedium ? 'amber' : 'blue',
       area: r.area,
       affectedArea: r.area,
@@ -89,24 +89,31 @@ export function transformBobAnalysis(input = {}) {
     }
   })
 
-  // Recommended tests transformation
-  const tests = (bobData.recommendedTests || []).map((t, idx) => ({
-    id: `test-${idx + 1}`,
-    name: t.name,
-    type: t.testFile.includes('integration')
-      ? 'Integration Test'
-      : t.testFile.includes('auth')
-      ? 'Unit / Integration Test'
-      : t.testFile.includes('products')
-      ? 'Regression Test'
-      : 'E2E Test',
-    priority: t.priority === 'HIGH' ? 'P0' : 'P1',
-    component: t.testFile,
-    affectedArea: t.testFile,
-    status: 'Not verified',
-    reason: t.reason,
-    testFile: t.testFile,
-  }))
+  // REAL IBM BOB RECOMMENDED TESTS (13 Test Recommendations)
+  const tests = (bobData.recommendedTests || []).map((t, idx) => {
+    const isHigh = t.priority === 'HIGH'
+    const testFileClean = t.testFile.replace(/^shopflow-demo\//, '')
+    return {
+      id: `TEST-${String(idx + 1).padStart(3, '0')}`,
+      name: t.name,
+      priority: t.priority, // "HIGH", "MEDIUM"
+      displayPriority: isHigh ? 'P0' : 'P1',
+      testFile: testFileClean,
+      component: testFileClean,
+      affectedArea: testFileClean,
+      type: testFileClean.includes('integration')
+        ? 'Integration Test'
+        : testFileClean.includes('auth')
+        ? 'Auth Test'
+        : testFileClean.includes('orders')
+        ? 'Order Regression'
+        : testFileClean.includes('payments')
+        ? 'Payment Security'
+        : 'Public Endpoint Test',
+      status: 'Not Executed',
+      reason: t.reason,
+    }
+  })
 
   const readiness = bobData.releaseReadiness || {}
 
@@ -137,6 +144,7 @@ export function transformBobAnalysis(input = {}) {
       ['Indirectly Affected Files', `${indirectCount}`, 'Downstream routes, models, schema & tests'],
       ['Affected Modules', `${affectedModules.filter((m) => m.impact !== 'NONE').length}`, `${directModulesCount} Direct, ${indirectModulesCount} Indirect`],
       ['Affected API Endpoints', `${affectedAPIs.filter((a) => a.impact !== 'NONE').length}`, `${directAPIsCount} Direct, ${indirectAPIsCount} Indirect`],
+      ['Risks Flagged', `${risks.length}`, `${risks.filter((r) => r.severity === 'HIGH').length} High, ${risks.filter((r) => r.severity === 'MEDIUM').length} Medium, ${risks.filter((r) => r.severity === 'LOW').length} Low`],
       ['Tests Recommended', `${tests.length}`, '12 High priority, 1 Medium priority'],
     ],
 
@@ -201,7 +209,7 @@ export function transformBobAnalysis(input = {}) {
           subtitle: `${tests.length} recommended test cases to validate auth transition without regressions`,
           items: tests.map((t) => ({
             name: t.name,
-            detail: `${t.priority === 'P0' ? 'HIGH Priority' : 'MEDIUM Priority'} (${t.testFile}): ${t.reason}`,
+            detail: `${t.priority} Priority (${t.testFile}): ${t.reason}`,
             impact: t.priority,
           })),
         },
