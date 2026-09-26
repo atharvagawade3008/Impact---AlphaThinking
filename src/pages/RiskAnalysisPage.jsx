@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Bot, CheckCircle2, ShieldAlert, AlertTriangle, Info, SlidersHorizontal } from 'lucide-react'
-import { AnalysisResultHeader, EmptyState, SectionHeading, StatusBadge } from '../components'
+import { ActionFooter, AnalysisResultHeader, EmptyState, SectionHeading, StatusBadge } from '../components'
+
 
 export default function RiskAnalysisPage({ analysis, onNavigate }) {
   const [filterSeverity, setFilterSeverity] = useState('ALL') // 'ALL' | 'HIGH' | 'MEDIUM' | 'LOW'
@@ -188,12 +189,13 @@ export default function RiskAnalysisPage({ analysis, onNavigate }) {
           </div>
         )}
 
-        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <ActionFooter align="end">
           <button className="button primary" onClick={() => onNavigate('tests')}>
             Proceed to Recommended Tests ({analysis.tests?.length || 13} Suites) <ArrowRight size={15} />
           </button>
-        </div>
+        </ActionFooter>
       </section>
+
     </div>
   )
 }

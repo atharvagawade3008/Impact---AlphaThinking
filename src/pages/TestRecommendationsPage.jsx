@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ArrowRight, Bot, FileCheck, Info, CheckCircle2, AlertCircle, ShieldAlert, Layers } from 'lucide-react'
-import { AnalysisResultHeader, EmptyState, SectionHeading, StatusBadge } from '../components'
+import { ActionFooter, AnalysisResultHeader, EmptyState, SectionHeading, StatusBadge } from '../components'
+
 
 export default function TestRecommendationsPage({ analysis, onNavigate }) {
   const [filterPriority, setFilterPriority] = useState('ALL') // 'ALL' | 'HIGH' | 'MEDIUM'
@@ -148,7 +149,7 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
         {filteredTests.length === 0 ? (
           <EmptyState title="No matching test recommendations" detail="No tests match the selected filter." />
         ) : (
-          <div className="test-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+          <div className="test-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem', padding: '4px 20px 20px' }}>
             {filteredTests.map((test) => {
               const rawPriority = String(test.priority).toUpperCase()
               const isHigh = rawPriority === 'HIGH' || test.priority === 'P0'
@@ -227,12 +228,13 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
           </div>
         )}
 
-        <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+        <ActionFooter align="end">
           <button className="button primary" onClick={() => onNavigate('readiness')}>
             View Release Readiness <ArrowRight size={15} />
           </button>
-        </div>
+        </ActionFooter>
       </section>
+
     </div>
   )
 }

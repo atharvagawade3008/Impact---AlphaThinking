@@ -11,7 +11,8 @@ import {
   Workflow,
   Zap,
 } from 'lucide-react'
-import { AnalysisResultHeader, EmptyState, ImpactNode, SectionHeading, StatusBadge } from '../components'
+import { ActionFooter, AnalysisResultHeader, EmptyState, ImpactNode, SectionHeading, StatusBadge } from '../components'
+
 
 export default function ImpactMapPage({ analysis, onNavigate }) {
   const [activeTab, setActiveTab] = useState('all') // 'all' | 'direct' | 'indirect' | 'modules' | 'apis'
@@ -89,17 +90,31 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
           title="Technical Impact Chain"
           action={<span className="muted-label">{nodes.length} Relationship Stages Mapped</span>}
         />
-        <div className="impact-map">
-          {nodes.map((node, index) => (
-            <ImpactNode
-              key={node.label}
-              label={node.label}
-              value={node.value}
-              tone={node.tone}
-              last={index === nodes.length - 1 || node.last}
-            />
-          ))}
+        <div className="impact-map-container">
+          <div className="impact-map-flow">
+            {nodes.slice(0, 4).map((node, index) => (
+              <ImpactNode
+                key={node.label}
+                label={node.label}
+                value={node.value}
+                tone={node.tone}
+                last={index === 3}
+              />
+            ))}
+          </div>
+          {nodes.length > 4 && (
+            <div className="impact-map-test-bar">
+              <div className="test-bar-connector">
+                <span />
+              </div>
+              <div className={`impact-node ${nodes[4].tone || 'green'} test-node-card`}>
+                <span className="node-kicker">{nodes[4].label}</span>
+                <strong>{nodes[4].value}</strong>
+              </div>
+            </div>
+          )}
         </div>
+
       </section>
 
       {/* Impact Filter Controls */}
@@ -296,14 +311,17 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
                   <span className="metric-val text-amber">{analysis.verificationStatus || '0/13 verified (Not yet executed)'}</span>
                 </div>
               </div>
-              <button
-                className="button secondary full-button"
-                style={{ marginTop: '1.25rem' }}
-                onClick={() => onNavigate('risk')}
-              >
-                View Risk Analysis <ArrowRight size={15} />
-              </button>
+              <ActionFooter align="end">
+                <button
+                  className="button secondary"
+                  style={{ width: '100%' }}
+                  onClick={() => onNavigate('risk')}
+                >
+                  View Risk Analysis <ArrowRight size={15} />
+                </button>
+              </ActionFooter>
             </section>
+
           </div>
         )}
 

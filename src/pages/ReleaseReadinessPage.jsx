@@ -265,15 +265,17 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
             </StatusBadge>
           }
         />
-        <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
-          Each of the following issues independently prevents declaring the change release-ready.
-          They are grounded in specific, named evidence from the IBM Bob source-code analysis.
-          A finding is BLOCKING only when it causes a concrete structural failure — not merely because it sounds important.
-        </p>
-        <div className="rr-blocker-list">
-          {readiness.blockers.map((b) => (
-            <BlockerCard key={b.id} blocker={b} />
-          ))}
+        <div className="panel-body">
+          <p className="panel-desc">
+            Each of the following issues independently prevents declaring the change release-ready.
+            They are grounded in specific, named evidence from the IBM Bob source-code analysis.
+            A finding is BLOCKING only when it causes a concrete structural failure — not merely because it sounds important.
+          </p>
+          <div className="rr-blocker-list">
+            {readiness.blockers.map((b) => (
+              <BlockerCard key={b.id} blocker={b} />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -289,14 +291,16 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
               <StatusBadge tone="amber" dot={false}>{readiness.counts.reviewNeeded} Items</StatusBadge>
             }
           />
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
-            These depend on architectural decisions not yet made or require human code review after
-            implementation. They are not independent blockers today but must be resolved before release.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {readiness.reviewItems.map((item) => (
-              <ReviewCard key={item.id} item={item} />
-            ))}
+          <div className="panel-body">
+            <p className="panel-desc">
+              These depend on architectural decisions not yet made or require human code review after
+              implementation. They are not independent blockers today but must be resolved before release.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              {readiness.reviewItems.map((item) => (
+                <ReviewCard key={item.id} item={item} />
+              ))}
+            </div>
           </div>
         </section>
 
@@ -311,27 +315,29 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
               </StatusBadge>
             }
           />
-          <div
-            className="rr-test-verdict"
-            style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' }}
-          >
-            <XCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
-            <div>
-              <strong style={{ color: '#f8fafc', display: 'block', marginBottom: '0.2rem' }}>
-                Zero valid OAuth test coverage
-              </strong>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                {readiness.testReadiness.summary}
-              </p>
+          <div className="panel-body">
+            <div
+              className="rr-test-verdict"
+              style={{ borderColor: 'rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)' }}
+            >
+              <XCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+              <div>
+                <strong style={{ color: '#f8fafc', display: 'block', marginBottom: '0.2rem' }}>
+                  Zero valid OAuth test coverage
+                </strong>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+                  {readiness.testReadiness.summary}
+                </p>
+              </div>
             </div>
+            {readiness.testReadiness.domains.length > 0 && (
+              <div style={{ marginTop: '0.5rem' }}>
+                {readiness.testReadiness.domains.map((d, i) => (
+                  <TestDomainRow key={i} domain={d} />
+                ))}
+              </div>
+            )}
           </div>
-          {readiness.testReadiness.domains.length > 0 && (
-            <div style={{ marginTop: '1rem' }}>
-              {readiness.testReadiness.domains.map((d, i) => (
-                <TestDomainRow key={i} domain={d} />
-              ))}
-            </div>
-          )}
         </section>
       </div>
 
@@ -351,40 +357,42 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
               </button>
             }
           />
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.5 }}>
-            {readiness.requiredActions.reduce((sum, p) => sum + p.actions.length, 0)} actions across{' '}
-            {readiness.requiredActions.length} phases. None of these actions have been completed.
-          </p>
-          <div className="rr-phases">
-            {readiness.requiredActions.map((phase) => (
-              <div key={phase.phase} className="rr-phase">
-                <div className="rr-phase-header">
-                  <span className="rr-phase-badge">Phase {phase.phase}</span>
-                  <div>
-                    <strong className="rr-phase-title">{phase.phaseTitle}</strong>
-                    {phase.phaseNote && (
-                      <span className="rr-phase-note"> — {phase.phaseNote}</span>
-                    )}
+          <div className="panel-body">
+            <p className="panel-desc">
+              {readiness.requiredActions.reduce((sum, p) => sum + p.actions.length, 0)} actions across{' '}
+              {readiness.requiredActions.length} phases. None of these actions have been completed.
+            </p>
+            <div className="rr-phases">
+              {readiness.requiredActions.map((phase) => (
+                <div key={phase.phase} className="rr-phase">
+                  <div className="rr-phase-header">
+                    <span className="rr-phase-badge">Phase {phase.phase}</span>
+                    <div>
+                      <strong className="rr-phase-title">{phase.phaseTitle}</strong>
+                      {phase.phaseNote && (
+                        <span className="rr-phase-note"> — {phase.phaseNote}</span>
+                      )}
+                    </div>
+                    <span className="rr-phase-count">{phase.actions.length} actions</span>
                   </div>
-                  <span className="rr-phase-count">{phase.actions.length} actions</span>
-                </div>
-                {actionsExpanded && (
-                  <div className="rr-action-list">
-                    {phase.actions.map((a) => (
-                      <div key={a.id} className="rr-action-item">
-                        <span className="rr-action-id">{a.id}</span>
-                        <div className="rr-action-body">
-                          <span>{a.action}</span>
-                          {a.resolves && (
-                            <code className="rr-resolves-tag">Resolves: {a.resolves}</code>
-                          )}
+                  {actionsExpanded && (
+                    <div className="rr-action-list">
+                      {phase.actions.map((a) => (
+                        <div key={a.id} className="rr-action-item">
+                          <span className="rr-action-id">{a.id}</span>
+                          <div className="rr-action-body">
+                            <span>{a.action}</span>
+                            {a.resolves && (
+                              <code className="rr-resolves-tag">Resolves: {a.resolves}</code>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -402,23 +410,25 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
               </button>
             }
           />
-          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
-            These observations describe the scope of the change or note cleanup tasks. They have no
-            independent failure mode and do not require action before implementation begins.
-          </p>
-          {infExpanded && (
-            <div className="rr-inf-list">
-              {readiness.informationalItems.map((item) => (
-                <div key={item.id} className="rr-inf-item">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                    <span className="rr-action-id" style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }}>{item.id}</span>
-                    <strong style={{ fontSize: '0.85rem', color: '#f0f4f8' }}>{item.finding}</strong>
+          <div className="panel-body">
+            <p className="panel-desc">
+              These observations describe the scope of the change or note cleanup tasks. They have no
+              independent failure mode and do not require action before implementation begins.
+            </p>
+            {infExpanded && (
+              <div className="rr-inf-list">
+                {readiness.informationalItems.map((item) => (
+                  <div key={item.id} className="rr-inf-item">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
+                      <span className="rr-action-id" style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', border: '1px solid rgba(56,189,248,0.2)' }}>{item.id}</span>
+                      <strong style={{ fontSize: '0.85rem', color: '#f0f4f8' }}>{item.finding}</strong>
+                    </div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, paddingLeft: '2.4rem', lineHeight: 1.45 }}>{item.note}</p>
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0, paddingLeft: '2.4rem', lineHeight: 1.45 }}>{item.note}</p>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       )}
 
@@ -426,20 +436,23 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
       {readiness.limitations?.length > 0 && (
         <section className="panel" style={{ marginTop: '1.25rem', borderColor: 'rgba(255,255,255,0.06)' }}>
           <SectionHeading eyebrow="Epistemic boundaries" title="Assessment Limitations" />
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
-            These limitations bound the conclusions of this assessment. They are not findings — they
-            are the boundaries of what static analysis can determine.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {readiness.limitations.map((lim) => (
-              <div key={lim.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.65rem 0.9rem', borderRadius: '6px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5 }}>
-                <code style={{ color: '#38bdf8', flexShrink: 0, fontSize: '0.72rem' }}>{lim.id}</code>
-                <span>{lim.text}</span>
-              </div>
-            ))}
+          <div className="panel-body">
+            <p className="panel-desc">
+              These limitations bound the conclusions of this assessment. They are not findings — they
+              are the boundaries of what static analysis can determine.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {readiness.limitations.map((lim) => (
+                <div key={lim.id} style={{ display: 'flex', gap: '0.75rem', padding: '0.65rem 0.9rem', borderRadius: '6px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)', fontSize: '0.8rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                  <code style={{ color: '#38bdf8', flexShrink: 0, fontSize: '0.72rem' }}>{lim.id}</code>
+                  <span>{lim.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       )}
+
 
       {/* ── Navigation footer ── */}
       <section className="quick-action" style={{ marginTop: '1.5rem' }}>

@@ -4,7 +4,7 @@ export function EmptyState({ title = 'Nothing here yet', detail = 'New activity 
   return (
     <div className="empty-state">
       <ShieldCheck size={25} />
-      <div>
+      <div className="empty-state-text">
         <strong>{title}</strong>
         <span>{detail}</span>
       </div>

@@ -15,11 +15,25 @@ export default function DashboardPage({ onNavigate, onViewAnalysis }) {
           </button>
         }
       />
-      <div className="metric-grid">
-        {summaryMetrics.map((metric) => (
-          <MetricCard key={metric.label} metric={metric} />
-        ))}
-      </div>
+
+      {/* ── Workspace metrics ─────────────────────────────────────────────── */}
+      <section className="panel metrics-section">
+        <SectionHeading
+          eyebrow="Workspace health"
+          title="Overview metrics"
+          action={
+            <button className="text-button" onClick={() => onNavigate('analyze')}>
+              New analysis <ArrowRight size={14} />
+            </button>
+          }
+        />
+        <div className="metric-grid">
+          {summaryMetrics.map((metric) => (
+            <MetricCard key={metric.label} metric={metric} />
+          ))}
+        </div>
+      </section>
+
       <div className="dashboard-grid">
         <section className="panel analysis-panel">
           <SectionHeading

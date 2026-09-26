@@ -14,4 +14,6 @@ export { Logo } from './Logo'
 export { Sidebar } from './Sidebar'
 export { Topbar } from './Topbar'
 export { AnalysisResultHeader } from './AnalysisResultHeader'
+export { ActionFooter } from './ActionFooter'
 export { ErrorBoundary } from './ErrorBoundary'
+

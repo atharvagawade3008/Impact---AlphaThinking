@@ -1,4 +1,4 @@
-import { FileCode2, GitBranch, MoreHorizontal } from 'lucide-react'
+import { FileCode2, GitBranch } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { RiskBadge } from './RiskBadge'
 
@@ -14,7 +14,6 @@ export function AnalysisTable({ analyses = [], onView }) {
             <th>Risk</th>
             <th>Status</th>
             <th>Date</th>
-            <th />
           </tr>
         </thead>
         <tbody>
@@ -53,18 +52,6 @@ export function AnalysisTable({ analyses = [], onView }) {
                 </StatusBadge>
               </td>
               <td className="muted-cell">{analysis.date}</td>
-              <td>
-                <button
-                  className="icon-button"
-                  aria-label={`Open analysis: ${analysis.change}`}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onView?.(analysis)
-                  }}
-                >
-                  <MoreHorizontal size={17} />
-                </button>
-              </td>
             </tr>
           ))}
         </tbody>
@@ -72,4 +59,5 @@ export function AnalysisTable({ analyses = [], onView }) {
     </div>
   )
 }
+
 export default AnalysisTable

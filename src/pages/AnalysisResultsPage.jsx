@@ -74,7 +74,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
         </span>
       </div>
 
-      <section className="summary-strip">
+      <section className="summary-strip summary-strip--3col">
         {summary.map(([label, value, detail]) => (
           <div key={label}>
             <span>{label}</span>
@@ -94,17 +94,31 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             </button>
           }
         />
-        <div className="impact-map">
-          {nodes.map((node, index) => (
-            <ImpactNode
-              key={node.label}
-              label={node.label}
-              value={node.value}
-              tone={node.tone}
-              last={index === nodes.length - 1 || node.last}
-            />
-          ))}
+        <div className="impact-map-container">
+          <div className="impact-map-flow">
+            {nodes.slice(0, 4).map((node, index) => (
+              <ImpactNode
+                key={node.label}
+                label={node.label}
+                value={node.value}
+                tone={node.tone}
+                last={index === 3}
+              />
+            ))}
+          </div>
+          {nodes.length > 4 && (
+            <div className="impact-map-test-bar">
+              <div className="test-bar-connector">
+                <span />
+              </div>
+              <div className={`impact-node ${nodes[4].tone || 'green'} test-node-card`}>
+                <span className="node-kicker">{nodes[4].label}</span>
+                <strong>{nodes[4].value}</strong>
+              </div>
+            </div>
+          )}
         </div>
+
       </section>
 
       <div className="results-grid">

@@ -42,10 +42,88 @@ button:disabled { cursor: progress; opacity: .68; }
 .layer-badge.green { background: rgba(16,185,129,.12); color: #10b981; border: 1px solid rgba(16,185,129,.3); }
 .layer-item p { margin-top: 4px; color: var(--muted); font-size: 12px; }
 
-.impact-metrics-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-.impact-metric-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
-.metric-label { color: var(--muted); }
-.metric-val { font-weight: 600; font-family: 'IBM Plex Mono', monospace; }
+/* Impact Metrics */
+.impact-metrics-list { display: flex; flex-direction: column; padding: 4px 0 0; }
+.impact-metric-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line); font-size: 12px; }
+.impact-metric-row:last-child { border-bottom: none; }
+.metric-label { color: var(--muted); font-size: 12px; }
+.metric-val { font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: 12px; text-align: right; }
+
+/* Action Footer */
+.action-footer { display: flex; align-items: center; gap: 12px; padding: 16px 20px 20px; width: 100%; box-sizing: border-box; }
+.action-footer.align-end { justify-content: flex-end; }
+.action-footer.align-between { justify-content: space-between; }
+.action-footer.align-start { justify-content: flex-start; }
+.action-footer.align-center { justify-content: center; }
+.action-footer.has-border { border-top: 1px solid var(--line); margin-top: 16px; }
+
+/* Impact Map Flow Layout */
+.impact-map-container { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+/* Four-card horizontal chain: each .impact-step holds a node + arrow connector.
+   We use a 7-column grid: [node] [arrow] [node] [arrow] [node] [arrow] [node]
+   Columns 1,3,5,7 = cards (equal width); columns 2,4,6 = slim arrow connectors. */
+.impact-map-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  align-items: stretch;
+}
+
+/* Each impact-step is a flex row: [node-card] [arrow] */
+.impact-map-flow .impact-step { display: flex; align-items: stretch; min-width: 0; width: 100%; }
+.impact-map-flow .impact-node { flex: 1; min-width: 0; padding: 13px 14px; min-height: 76px; display: flex; flex-direction: column; justify-content: center; border-radius: 6px; }
+.impact-map-flow .impact-node strong { font-size: 11px; line-height: 1.4; word-break: break-word; }
+
+/* Line + dot connector between cards — no arrowheads, no chevrons.
+   The .node-connector div is the full-width bridge; the span is the centre dot. */
+.impact-map-flow .node-connector {
+  flex: 0 0 32px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  height: auto;
+  background: transparent;
+}
+/* Thin 1px horizontal line spanning the connector */
+.impact-map-flow .node-connector::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--line);
+  transform: translateY(-50%);
+}
+/* Small dot — nudged down by 6px so it sits below the visual midpoint
+   of the connector, appearing to rest on the line rather than float above it. */
+.impact-map-flow .node-connector span {
+  position: relative;
+  z-index: 1;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--dim);
+  border: none;
+  transform: none;
+  margin-top: 6px;
+}
+
+/* Recommended Test Suites — sits below the four-card row with clean spacing only,
+   no vertical connector. The .impact-map-test-bar wrapper is kept for markup
+   compatibility but stripped of any visual connector elements. */
+.impact-map-test-bar { display: flex; flex-direction: column; align-items: stretch; gap: 0; width: 100%; margin-top: 12px; }
+.test-bar-connector { display: none; }
+.test-node-card { width: 100%; display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 12px 18px; min-height: 0; border-radius: 6px; box-sizing: border-box; }
+.test-node-card .node-kicker { margin-bottom: 0; }
+
+/* Panel Body Spacing System */
+.panel-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.panel-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.55; margin: 0; }
+
 
 /* Risk Details */
 .risk-details-list { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
@@ -170,9 +248,60 @@ button:disabled { cursor: progress; opacity: .68; }
 .rr-inf-list { display: flex; flex-direction: column; gap: 8px; }
 .rr-inf-item { padding: 10px 12px; border-radius: 5px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
 
+/* ── Dashboard table — no horizontal scrollbar ──────────────────────────────
+   The table inside .analysis-panel must not force the panel wider than its
+   grid cell. Remove min-width and allow the Change column to wrap naturally. */
+.analysis-panel .table-scroll { overflow-x: visible; }
+.analysis-panel table { min-width: 0; width: 100%; }
+.analysis-panel td { white-space: normal; }
+.analysis-panel td:first-child strong { white-space: normal; word-break: break-word; }
+/* Keep non-content columns compact */
+.analysis-panel td:nth-child(2),
+.analysis-panel td:nth-child(3),
+.analysis-panel td:nth-child(5),
+.analysis-panel td:nth-child(6) { white-space: nowrap; }
+
+/* ── Overview first section — consistent spacing ────────────────────────────
+   The .panel wrapping .metrics-section uses the standard section-heading
+   (padding + border-bottom). The metric-grid sits inside the panel body
+   with the same 18px 20px padding used by .panel-body elsewhere. */
+.metrics-section { margin-bottom: 26px; }
+.metrics-section .metric-grid { margin: 0; padding: 18px 20px 20px; }
+
+/* ── Summary strip — consistent vertical dividers ───────────────────────────
+   App.css uses repeat(4,1fr). Each usage has a different item count:
+   - AnalysisResultsPage: 6 items → needs repeat(3,1fr) for 2 complete rows
+     (class .summary-strip--3col added to that element)
+   - TestRecommendationsPage: 4 items → repeat(4,1fr) is already perfect
+     (4 items = 1 full row = all borders are full-height by definition)
+
+   Cells get flex-column so their content stacks and heights equalise. */
+.summary-strip--3col {
+  grid-template-columns: repeat(3, 1fr) !important;
+}
+.summary-strip > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 /* Responsive */
+/* Desktop ≥ 1025px: keep all 4 impact-map nodes on one row */
+@media (max-width: 768px) {
+  .impact-map-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .impact-map-flow .impact-step { flex-direction: column; }
+  .impact-map-flow .node-connector { display: none; }
+}
+@media (max-width: 500px) {
+  .impact-map-flow { grid-template-columns: 1fr; }
+}
 @media (max-width: 720px) {
   .rr-hero { flex-direction: column; align-items: flex-start; }
   .rr-hero-stats { width: 100%; border-top: 1px solid var(--line); padding-top: 14px; justify-content: space-between; }
   .rr-stat-pill { flex: 1; }
+  .test-node-card { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .panel-body { padding: 14px 16px 16px; }
+  .impact-metric-row { padding: 10px 14px; }
+  .action-footer { padding: 14px 16px 16px; }
 }
+
