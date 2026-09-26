@@ -1,0 +1,289 @@
+{
+  "repository": "ShopFlow demo",
+  "scope": "Repository-version-specific evaluation data; regenerate for a replacement repository.",
+  "scenarios": [
+    {
+      "id": "SCN-001",
+      "title": "Replace JWT authentication with OAuth 2.0",
+      "changeDescription": "Replace the current local registration/login and Bearer JWT verification flow with OAuth 2.0 while preserving the identity contract consumed by protected routes.",
+      "directlyAffectedFiles": [
+        ".env.example",
+        "src/controllers/authController.js",
+        "src/routes/authRoutes.js",
+        "src/services/authService.js",
+        "src/middleware/authMiddleware.js",
+        "src/utils/jwt.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/routes/userRoutes.js",
+        "src/routes/orderRoutes.js",
+        "src/routes/paymentRoutes.js",
+        "tests/helpers.js",
+        "tests/auth.test.js",
+        "tests/integration.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js"
+      ],
+      "affectedModules": ["Authentication", "Middleware", "Users", "Orders", "Payments"],
+      "affectedAPIs": [
+        "POST /api/auth/register",
+        "POST /api/auth/login",
+        "GET /api/users/me",
+        "PUT /api/users/me",
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id",
+        "POST /api/payments",
+        "GET /api/payments/:id",
+        "POST /api/payments/:id/refund"
+      ],
+      "affectedTests": [
+        "tests/auth.test.js",
+        "tests/integration.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js"
+      ],
+      "riskAreas": ["identity mapping", "protected-route authentication", "OAuth configuration and callback validation", "session/token compatibility"],
+      "recommendedTests": ["successful OAuth authentication produces the identity expected by protected routes", "invalid or expired OAuth credentials are rejected", "protected user, order, and payment routes reject unauthenticated requests"]
+    },
+    {
+      "id": "SCN-002",
+      "title": "Change Password Hashing Implementation",
+      "changeDescription": "Replace bcryptjs hashing or comparison in authentication while maintaining compatible credential storage and login behavior.",
+      "directlyAffectedFiles": [
+        "src/services/authService.js",
+        "package.json",
+        "package-lock.json"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/models/userModel.js",
+        "tests/auth.test.js",
+        "tests/integration.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js"
+      ],
+      "affectedModules": ["Authentication", "Users"],
+      "affectedAPIs": ["POST /api/auth/register", "POST /api/auth/login"],
+      "affectedTests": [
+        "tests/auth.test.js",
+        "tests/integration.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js"
+      ],
+      "riskAreas": ["stored hash compatibility", "credential migration", "login failures", "dependency replacement"],
+      "recommendedTests": ["newly registered password verifies against its stored hash", "existing supported hashes still authenticate or are migrated", "wrong password is rejected", "duplicate email registration remains rejected"]
+    },
+    {
+      "id": "SCN-003",
+      "title": "Add Role-Based Authorization",
+      "changeDescription": "Enforce customer/admin role policy on protected route groups; the current middleware validates JWTs but does not authorize by role.",
+      "directlyAffectedFiles": [
+        "src/middleware/authMiddleware.js",
+        "src/routes/userRoutes.js",
+        "src/routes/orderRoutes.js",
+        "src/routes/paymentRoutes.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/utils/jwt.js",
+        "src/services/authService.js",
+        "src/models/userModel.js",
+        "tests/auth.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Middleware", "Authentication", "Users", "Orders", "Payments"],
+      "affectedAPIs": [
+        "GET /api/users/me",
+        "PUT /api/users/me",
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id",
+        "POST /api/payments",
+        "GET /api/payments/:id",
+        "POST /api/payments/:id/refund"
+      ],
+      "affectedTests": [
+        "tests/auth.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["role claim freshness", "default-deny behavior", "route coverage", "customer data isolation"],
+      "recommendedTests": ["customer is denied admin-only operations", "admin is allowed only the explicitly authorized operations", "missing or unknown role is denied", "existing user ownership checks remain enforced"]
+    },
+    {
+      "id": "SCN-004",
+      "title": "Change Product Pricing Calculation",
+      "changeDescription": "Change how catalog prices are mapped or how order totals are calculated, such as introducing a discount or revised rounding rule.",
+      "directlyAffectedFiles": [
+        "src/models/productModel.js",
+        "src/services/orderService.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/services/productService.js",
+        "src/models/orderModel.js",
+        "src/services/paymentService.js",
+        "src/controllers/productController.js",
+        "tests/products.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Products", "Orders", "Payments"],
+      "affectedAPIs": [
+        "GET /api/products",
+        "GET /api/products/:id",
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id",
+        "POST /api/payments"
+      ],
+      "affectedTests": [
+        "tests/products.test.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["integer-cent conversion", "rounding", "order-time price snapshots", "payment amount matching"],
+      "recommendedTests": ["catalog price maps correctly from cents", "multi-item order total uses the intended rounding rule", "order item price snapshots remain stable", "payment rejects a total that differs from the order"]
+    },
+    {
+      "id": "SCN-005",
+      "title": "Change Inventory Reservation During Order Creation",
+      "changeDescription": "Adjust the existing stock reservation policy used when an order is created; stock decrement and order/item writes currently run inside a SQLite transaction.",
+      "directlyAffectedFiles": [
+        "src/services/orderService.js",
+        "src/services/productService.js",
+        "src/models/productModel.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/config/database.js",
+        "src/models/orderModel.js",
+        "src/db/schema.sql",
+        "src/routes/orderRoutes.js",
+        "tests/orders.test.js",
+        "tests/products.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Products", "Orders", "Database"],
+      "affectedAPIs": [
+        "GET /api/products",
+        "GET /api/products/:id",
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id"
+      ],
+      "affectedTests": [
+        "tests/orders.test.js",
+        "tests/products.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["stock consistency", "transaction rollback", "duplicate line items", "concurrent checkout"],
+      "recommendedTests": ["insufficient stock leaves inventory and order rows unchanged", "duplicate product lines reserve the combined quantity", "successful checkout creates matching order items and decrements stock", "concurrent reservations cannot oversell stock"]
+    },
+    {
+      "id": "SCN-006",
+      "title": "Change Payment Processing Flow",
+      "changeDescription": "Change how the payment service invokes its provider and persists payment/order outcomes while retaining the current payment API unless the request contract also changes.",
+      "directlyAffectedFiles": [
+        "src/services/paymentService.js",
+        "src/providers/mockPaymentProvider.js",
+        "src/models/paymentModel.js",
+        "src/models/orderModel.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/controllers/paymentController.js",
+        "src/routes/paymentRoutes.js",
+        "src/services/orderService.js",
+        "src/db/schema.sql",
+        "tests/payments.test.js",
+        "tests/orders.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Payments", "Orders", "Database"],
+      "affectedAPIs": [
+        "POST /api/payments",
+        "GET /api/payments/:id",
+        "POST /api/payments/:id/refund",
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id"
+      ],
+      "affectedTests": [
+        "tests/payments.test.js",
+        "tests/orders.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["amount and ownership validation", "provider failures", "retries/idempotency", "payment/order state consistency"],
+      "recommendedTests": ["successful provider result updates payment and order", "provider failure does not report a successful payment", "repeat processing does not duplicate a successful charge", "wrong amount and non-owned order are rejected"]
+    },
+    {
+      "id": "SCN-007",
+      "title": "Extend Existing Refunds to Support Partial Refunds",
+      "changeDescription": "Extend the existing full-refund flow to accept and track partial refund amounts; the current endpoint accepts no amount and marks the payment and order fully refunded.",
+      "directlyAffectedFiles": [
+        "src/services/paymentService.js",
+        "src/providers/mockPaymentProvider.js",
+        "src/models/paymentModel.js",
+        "src/models/orderModel.js",
+        "src/controllers/paymentController.js",
+        "src/routes/paymentRoutes.js",
+        "src/db/schema.sql"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/services/orderService.js",
+        "tests/payments.test.js",
+        "tests/orders.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Payments", "Orders", "Database"],
+      "affectedAPIs": [
+        "POST /api/payments/:id/refund",
+        "GET /api/payments/:id",
+        "GET /api/orders",
+        "GET /api/orders/:id"
+      ],
+      "affectedTests": [
+        "tests/payments.test.js",
+        "tests/orders.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["refund amount bounds", "repeated/over-refund handling", "partial versus full status", "schema migration"],
+      "recommendedTests": ["partial refund updates the remaining refundable amount", "multiple refunds cannot exceed the original amount", "full refund reaches the existing refunded state", "refund of pending or failed payment is rejected"]
+    },
+    {
+      "id": "SCN-008",
+      "title": "Change the Order Status Workflow",
+      "changeDescription": "Change the allowed order statuses or transition rules currently used when payment succeeds or is refunded.",
+      "directlyAffectedFiles": [
+        "src/db/schema.sql",
+        "src/models/orderModel.js",
+        "src/services/paymentService.js"
+      ],
+      "indirectlyAffectedFiles": [
+        "src/services/orderService.js",
+        "src/models/paymentModel.js",
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "affectedModules": ["Orders", "Payments", "Database"],
+      "affectedAPIs": [
+        "POST /api/orders",
+        "GET /api/orders",
+        "GET /api/orders/:id",
+        "POST /api/payments",
+        "GET /api/payments/:id",
+        "POST /api/payments/:id/refund"
+      ],
+      "affectedTests": [
+        "tests/orders.test.js",
+        "tests/payments.test.js",
+        "tests/integration.test.js"
+      ],
+      "riskAreas": ["schema status constraint", "legal transition sequence", "payment/order state consistency", "existing persisted rows"],
+      "recommendedTests": ["new order begins in the intended initial state", "only valid payment transitions are accepted", "refund produces the intended order state", "full integration flow returns consistent order and payment states"]
+    }
+  ]
+}
