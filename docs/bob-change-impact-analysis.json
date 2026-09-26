@@ -1,0 +1,357 @@
+{
+  "repository": "ShopFlow demo",
+  "generatedBy": "IBM Bob — derived from source code inspection of shopflow-demo/",
+  "analysisSource": "docs/bob-change-impact-analysis.md",
+  "note": "No implementation has been performed. No tests have been executed. This JSON encodes findings from static source-code analysis only.",
+
+  "change": {
+    "id": "SCN-001",
+    "title": "Replace JWT authentication with OAuth 2.0",
+    "description": "Replace the existing JWT-based authentication flow — including self-signed token issuance in authService, symmetric-secret verification in authMiddleware, and the /api/auth/register and /api/auth/login endpoints — with an OAuth 2.0 authentication flow backed by an external authorization server."
+  },
+
+  "impact": {
+    "directlyAffectedFiles": [
+      {
+        "path": "shopflow-demo/src/utils/jwt.js",
+        "reason": "Contains the entire JWT implementation: signToken (lines 5-9) uses jsonwebtoken to sign a payload of {sub: user.id, role: user.role} with JWT_SECRET, and verifyToken (lines 11-13) calls jwt.verify against the same secret. Both functions are specific to locally-issued JWTs and must be replaced when token issuance and verification are delegated to an OAuth authorization server."
+      },
+      {
+        "path": "shopflow-demo/src/middleware/authMiddleware.js",
+        "reason": "Imports verifyToken from utils/jwt.js (line 1) and calls it synchronously on every protected request (line 13). The requireAuth function reads the Authorization header for a Bearer scheme and writes request.user = verifyToken(token). Under OAuth 2.0, verification against a local symmetric secret is replaced by async token introspection or JWKS-based signature checking; the function body must be rewritten."
+      },
+      {
+        "path": "shopflow-demo/src/services/authService.js",
+        "reason": "Owns the register and login domain logic. register (lines 7-12) calls bcrypt.hash, userModel.create, and signToken. login (lines 14-20) calls userModel.findByEmail, bcrypt.compare, and signToken. Under OAuth 2.0 the application no longer issues tokens; both methods are replaced by OAuth-specific flows. The signToken import (line 3) and bcryptjs usage (lines 9, 16) are removed."
+      },
+      {
+        "path": "shopflow-demo/src/controllers/authController.js",
+        "reason": "Defines two handlers: register (lines 4-7) calls authService.register(request.body) and returns HTTP 201, and login (lines 9-11) calls authService.login(request.body). Both handlers are tightly coupled to the credential-based request shape (name, email, password). Under OAuth 2.0 they are replaced by authorization-redirect and callback handlers."
+      },
+      {
+        "path": "shopflow-demo/src/routes/authRoutes.js",
+        "reason": "Defines POST /register (lines 7-11) with validateBody rules for name, email, and password, and POST /login (lines 12-15) with validateBody rules for email and password. Both endpoints and their input validation schemas are specific to the credential-based JWT flow and must be replaced by OAuth-specific routes."
+      },
+      {
+        "path": "shopflow-demo/.env.example",
+        "reason": "Declares JWT_SECRET (line 2) and JWT_EXPIRES_IN (line 3), which are the two environment variables read by utils/jwt.js (lines 3 and 7). Both are JWT-specific and have no meaning under OAuth 2.0. They must be replaced by OAuth client credentials, authorization server URLs, and callback URIs."
+      }
+    ],
+
+    "indirectlyAffectedFiles": [
+      {
+        "path": "shopflow-demo/src/routes/userRoutes.js",
+        "reason": "Line 8 applies router.use(requireAuth), making the entire /api/users route group dependent on requireAuth from authMiddleware.js. The route does not implement auth logic itself, but it depends on request.user being populated with the correct {id, role} shape before userController.getProfile and userController.updateProfile access request.user.id."
+      },
+      {
+        "path": "shopflow-demo/src/routes/orderRoutes.js",
+        "reason": "Line 8 applies router.use(requireAuth). All three order handlers (create, list, getById in orderController.js lines 5, 9, 13) pass request.user.id to orderService. A broken or changed request.user shape would propagate userId errors through orderService.createOrder, listOrders, and getOrder."
+      },
+      {
+        "path": "shopflow-demo/src/routes/paymentRoutes.js",
+        "reason": "Line 8 applies router.use(requireAuth). paymentController.js passes request.user.id as userId on lines 8, 14, and 18. paymentService uses this userId in its ownership guard (getOwnedOrder: order.userId !== userId, line 8 of paymentService.js). An incorrect userId from a changed request.user breaks all payment ownership checks."
+      },
+      {
+        "path": "shopflow-demo/src/models/userModel.js",
+        "reason": "The create method signature (line 15) is create({name, email, passwordHash}) and the SQL INSERT on line 17 requires the password_hash column. Under OAuth 2.0, if user rows are provisioned without a password hash, this method's signature must change and the INSERT statement must be updated to avoid a constraint violation."
+      },
+      {
+        "path": "shopflow-demo/src/db/schema.sql",
+        "reason": "The users table (lines 1-8) declares password_hash TEXT NOT NULL. This constraint makes it impossible to insert a user row without a bcrypt hash. Under OAuth 2.0, where the application does not manage passwords, this column either requires a schema migration to allow NULL or a new column (e.g., oauth_subject) must be added to correlate OAuth identities to local user rows."
+      },
+      {
+        "path": "shopflow-demo/src/services/userService.js",
+        "reason": "getProfile(userId) (lines 5-9) calls userModel.findById and throws AppError(404) if the user is not found. orderService.createOrder (line 10) and orderService.listOrders (line 40) call this as a guard. If OAuth user provisioning is lazy (user row created on first OAuth callback rather than at registration), an authenticated OAuth user without a local row will cause 404 errors on order creation and listing."
+      },
+      {
+        "path": "shopflow-demo/tests/helpers.js",
+        "reason": "Line 2 sets process.env.JWT_SECRET = 'test-secret', which configures the signing secret read by utils/jwt.js. Line 6 imports authService. Lines 23-29 define createTestUser(), which calls authService.register({name, email, password}) and returns a {token}. Both the JWT secret override and the token-acquisition mechanism are JWT-specific and break when authService no longer issues tokens."
+      },
+      {
+        "path": "shopflow-demo/tests/auth.test.js",
+        "reason": "The entire file exercises the current JWT register/login flow: POST /api/auth/register (lines 9-11), POST /api/auth/login (lines 26-28), assert.ok(registered.body.token) (line 13), and assert.equal('passwordHash' in registered.body.user, false) (line 15). All assertions are specific to the credential-based JWT response shape and must be rewritten for OAuth."
+      },
+      {
+        "path": "shopflow-demo/package.json",
+        "reason": "The dependencies object (lines 17-22) includes jsonwebtoken (line 21), used exclusively by utils/jwt.js, and bcryptjs (line 17), used exclusively by authService.js. Both packages become unused under OAuth 2.0. New OAuth client library dependencies must be added."
+      }
+    ],
+
+    "affectedModules": [
+      {
+        "name": "Authentication",
+        "impact": "DIRECT",
+        "reason": "The JWT issuance and verification logic that defines this module is replaced entirely."
+      },
+      {
+        "name": "Middleware",
+        "impact": "DIRECT",
+        "reason": "authMiddleware.js implements token verification and is rewritten."
+      },
+      {
+        "name": "Users",
+        "impact": "INDIRECT",
+        "reason": "userModel.create requires passwordHash; schema has password_hash NOT NULL; userService.getProfile is a guard in orderService for OAuth-provisioned users."
+      },
+      {
+        "name": "Orders",
+        "impact": "INDIRECT",
+        "reason": "All three order routes depend on requireAuth and pass request.user.id to orderService."
+      },
+      {
+        "name": "Payments",
+        "impact": "INDIRECT",
+        "reason": "All three payment routes depend on requireAuth; ownership checks in paymentService use request.user.id."
+      },
+      {
+        "name": "Products",
+        "impact": "NONE",
+        "reason": "productRoutes.js does not import requireAuth; product endpoints are public and have no dependency on the authentication mechanism."
+      }
+    ],
+
+    "affectedAPIs": [
+      {
+        "method": "POST",
+        "path": "/api/auth/register",
+        "impact": "DIRECT",
+        "reason": "Endpoint defined in authRoutes.js with validateBody({name, email, password}); the entire endpoint shape changes under OAuth."
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/login",
+        "impact": "DIRECT",
+        "reason": "Endpoint defined in authRoutes.js with validateBody({email, password}); replaced by OAuth authorization and callback endpoints."
+      },
+      {
+        "method": "GET",
+        "path": "/api/users/me",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth via router.use(requireAuth) in userRoutes.js line 8; depends on request.user.id being correctly set."
+      },
+      {
+        "method": "PUT",
+        "path": "/api/users/me",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth via router.use(requireAuth) in userRoutes.js line 8; depends on request.user.id."
+      },
+      {
+        "method": "POST",
+        "path": "/api/orders",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; orderController.create passes request.user.id to orderService.createOrder."
+      },
+      {
+        "method": "GET",
+        "path": "/api/orders",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; orderController.list passes request.user.id to orderService.listOrders."
+      },
+      {
+        "method": "GET",
+        "path": "/api/orders/:id",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; orderController.getById passes request.user.id to orderService.getOrder."
+      },
+      {
+        "method": "POST",
+        "path": "/api/payments",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; paymentController.process passes request.user.id to paymentService.processPayment."
+      },
+      {
+        "method": "GET",
+        "path": "/api/payments/:id",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; paymentController.getById passes request.user.id to paymentService.getPayment."
+      },
+      {
+        "method": "POST",
+        "path": "/api/payments/:id/refund",
+        "impact": "INDIRECT",
+        "reason": "Protected by requireAuth; paymentController.refund passes request.user.id to paymentService.refundPayment."
+      },
+      {
+        "method": "GET",
+        "path": "/api/products",
+        "impact": "NONE",
+        "reason": "productRoutes.js does not apply requireAuth; endpoint is public and unaffected."
+      },
+      {
+        "method": "GET",
+        "path": "/api/products/:id",
+        "impact": "NONE",
+        "reason": "productRoutes.js does not apply requireAuth; endpoint is public and unaffected."
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "impact": "NONE",
+        "reason": "Inline handler in app.js with no auth dependency."
+      }
+    ]
+  },
+
+  "risks": [
+    {
+      "id": "RISK-001",
+      "title": "request.user.id type mismatch: OAuth sub vs. SQLite integer",
+      "severity": "HIGH",
+      "area": "Authentication / Middleware / Orders / Payments",
+      "description": "utils/jwt.js line 13 returns id: Number(payload.sub). The OAuth provider subject (sub) is typically a UUID string (e.g., 'google|abc123'); Number('google|abc123') returns NaN. Every downstream ownership check — paymentService.js line 8 (order.userId !== userId) and orderService.js line 46 (order.userId !== userId) — silently fails with NaN comparisons, breaking the entire order and payment domain for all authenticated users.",
+      "mitigation": "In the new requireAuth implementation, resolve the OAuth subject to a local database integer user ID (via a lookup table or by storing the OAuth sub alongside the user row). Do not pass the raw OAuth sub as request.user.id without conversion."
+    },
+    {
+      "id": "RISK-002",
+      "title": "User provisioning gap: authenticated OAuth users may not have local rows",
+      "severity": "HIGH",
+      "area": "Authentication / Users / Orders",
+      "description": "userService.getProfile(userId) is called as a guard in orderService.createOrder (line 10) and orderService.listOrders (line 40). It calls userModel.findById and throws AppError(404, 'User not found') if the row is absent. If OAuth authentication succeeds but the local user row has not yet been created (e.g., first login after OAuth migration), order creation and listing return 404 for legitimately authenticated users.",
+      "mitigation": "Implement a user-provisioning step in the OAuth callback: look up or create a local user row when an OAuth identity is first seen, before issuing any redirect or session to the client."
+    },
+    {
+      "id": "RISK-003",
+      "title": "password_hash NOT NULL constraint blocks OAuth-provisioned user creation",
+      "severity": "HIGH",
+      "area": "Database / Users",
+      "description": "schema.sql line 4 declares password_hash TEXT NOT NULL. userModel.create (line 15) requires passwordHash as a mandatory argument and includes it in the INSERT statement (line 17). Any user provisioning path that does not supply a bcrypt hash fails with a SQLite NOT NULL constraint violation — a hard crash, not a graceful error.",
+      "mitigation": "Create a schema migration to make password_hash nullable (or to add an oauth_subject column), and update userModel.create to accept an optional passwordHash argument with a NULL default."
+    },
+    {
+      "id": "RISK-004",
+      "title": "Existing users lose access if credential migration is not planned",
+      "severity": "MEDIUM",
+      "area": "Authentication / Users",
+      "description": "Currently registered users have passwords stored as bcrypt hashes in the users table. If the migration removes the POST /api/auth/login endpoint and bcrypt.compare logic in authService without providing an account-linking mechanism, all existing users can no longer authenticate. Their password_hash values remain in the database but are unreachable.",
+      "mitigation": "Define a migration strategy before deployment: either link existing local accounts to OAuth identities via an account-linking flow, or provide a one-time credential migration path during the OAuth onboarding step."
+    },
+    {
+      "id": "RISK-005",
+      "title": "Token expiry semantics change; no refresh-token logic currently exists",
+      "severity": "MEDIUM",
+      "area": "Authentication",
+      "description": "utils/jwt.js line 7 sets expiresIn: process.env.JWT_EXPIRES_IN || '1d'. OAuth access tokens typically have shorter lifetimes (e.g., 1 hour) and use refresh tokens for renewal. ShopFlow has no refresh-token endpoint, no token-storage layer, and no client-side renewal mechanism. Callers will begin receiving 401 responses on long-lived sessions with no path to recovery.",
+      "mitigation": "Implement or document a token-refresh strategy as part of the OAuth integration. Decide whether refresh-token handling is the responsibility of this API or of an upstream API gateway."
+    },
+    {
+      "id": "RISK-006",
+      "title": "requireAuth becoming asynchronous must be explicitly handled",
+      "severity": "MEDIUM",
+      "area": "Middleware",
+      "description": "authMiddleware.js requireAuth is currently synchronous. OAuth token introspection or JWKS key fetching requires async calls. Express 5 (package.json line 19: 'express': '^5.1.0') supports async middleware natively and will forward thrown errors to the error handler, reducing the risk. However, the change must be explicitly implemented and tested — an async function that forgets to await the verification step would pass all tokens as valid.",
+      "mitigation": "Ensure the new requireAuth is declared async, that the verification call is awaited, and that any rejection is caught and forwarded via next(error). Add a test that confirms an invalid token is rejected, not silently accepted."
+    },
+    {
+      "id": "RISK-007",
+      "title": "Partial migration may allow tests to pass against old JWT code",
+      "severity": "LOW",
+      "area": "Testing",
+      "description": "tests/helpers.js line 2 hardcodes process.env.JWT_SECRET = 'test-secret'. If a partial migration leaves utils/jwt.js in place and tests continue to use the hardcoded secret, the test suite passes against the old JWT path while the new OAuth verification path is untested. Passing tests would give a false confidence signal.",
+      "mitigation": "Remove or replace the JWT_SECRET override in tests/helpers.js as part of the migration. Add an explicit test that verifies the OAuth token-verification path is exercised, not the legacy JWT path."
+    }
+  ],
+
+  "recommendedTests": [
+    {
+      "name": "OAuth authorization redirect returns correct Location header and state parameter",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Verifies the new authorization-initiation endpoint correctly redirects to the OAuth provider with the required state parameter for CSRF protection. No equivalent test exists; the current auth.test.js tests credential-based flows only."
+    },
+    {
+      "name": "OAuth callback with valid authorization code provisions user and returns authenticated token",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Verifies the callback handler exchanges the authorization code for tokens, creates or retrieves the local user row, and returns a usable session. Replaces the current POST /api/auth/register test."
+    },
+    {
+      "name": "OAuth callback with invalid or expired authorization code returns 400 or 401",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Verifies error handling in the callback flow. No equivalent currently exists for OAuth error states."
+    },
+    {
+      "name": "requireAuth rejects request with missing Authorization header with HTTP 401",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Regression: auth.test.js line 29 currently asserts GET /api/users/me without a token returns 401. The equivalent must exist after the OAuth migration to confirm protected routes are still guarded."
+    },
+    {
+      "name": "requireAuth rejects request with malformed Bearer token with HTTP 401",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Regression: authMiddleware.js line 16 currently catches jwt.verify failures and returns 401. The new verification path must also reject invalid tokens, not silently pass them."
+    },
+    {
+      "name": "requireAuth rejects request with expired OAuth token with HTTP 401",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "Token expiry must still be enforced after the switch to OAuth-issued tokens. No current test covers expiry-specific rejection."
+    },
+    {
+      "name": "Authenticated GET /api/users/me returns correct user profile using OAuth token",
+      "priority": "HIGH",
+      "testFile": "tests/auth.test.js",
+      "reason": "End-to-end smoke test verifying the full request.user.id resolution chain: OAuth token → requireAuth → request.user.id → userService.getProfile → database lookup → correct user in response."
+    },
+    {
+      "name": "POST /api/orders succeeds with valid OAuth token, reserves stock, and prepares payment",
+      "priority": "HIGH",
+      "testFile": "tests/orders.test.js",
+      "reason": "Regression for tests/orders.test.js lines 8-23. orderService.createOrder passes userId from request.user.id through userService, productService, and paymentService. Must confirm the full chain works with the new userId resolution mechanism."
+    },
+    {
+      "name": "POST /api/orders with one unavailable item rolls back stock for all items in the transaction",
+      "priority": "HIGH",
+      "testFile": "tests/orders.test.js",
+      "reason": "Regression for tests/orders.test.js lines 26-33. The SQLite transaction rollback behaviour in orderService is independent of auth, but the test requires a valid OAuth token via createTestUser(); the test helper must be updated to provide one."
+    },
+    {
+      "name": "Cross-user access to an order is rejected with HTTP 404",
+      "priority": "HIGH",
+      "testFile": "tests/payments.test.js",
+      "reason": "paymentService.getOwnedOrder checks order.userId !== userId (line 8). After the OAuth migration, userId comes from a new request.user.id resolution path. Must verify the ownership guard still functions correctly and rejects access by a different user's token."
+    },
+    {
+      "name": "Full payment flow: process, retrieve, and refund a payment; order status updates to refunded",
+      "priority": "HIGH",
+      "testFile": "tests/payments.test.js",
+      "reason": "Regression for tests/payments.test.js. After refund, paymentService calls orderModel.updateStatus(orderId, 'refunded'). The test at line 28-30 asserts order.status === 'refunded'. Must verify the cross-domain status write-back still works after the auth change."
+    },
+    {
+      "name": "Full checkout integration: OAuth register/provision → browse products → create order → pay → order history",
+      "priority": "HIGH",
+      "testFile": "tests/integration.test.js",
+      "reason": "Regression for tests/integration.test.js. The current test (lines 8-26) uses POST /api/auth/register and reads registration.body.token. The entire setup must be rewritten to use OAuth token acquisition, but all downstream assertions (order status, item names) should pass unchanged."
+    },
+    {
+      "name": "GET /api/products and GET /api/products/:id succeed without an Authorization header",
+      "priority": "MEDIUM",
+      "testFile": "tests/products.test.js",
+      "reason": "Regression: productRoutes.js does not apply requireAuth. The product tests in tests/products.test.js require no changes, but must still pass to confirm the migration did not accidentally add auth middleware to public routes."
+    }
+  ],
+
+  "releaseReadiness": {
+    "status": "REVIEW_NEEDED",
+    "reason": "The proposed change replaces the core authentication mechanism. Six files require direct code changes; nine files require review or test updates. Three HIGH-severity risks involving request.user.id type mismatch, user provisioning gaps, and a database schema constraint have not been resolved. No implementation has been performed and no tests have been executed.",
+    "blockers": [
+      "utils/jwt.js, authMiddleware.js, authService.js, authController.js, and authRoutes.js have not been updated; the JWT authentication flow is still the active implementation.",
+      "request.user.id type mismatch risk (RISK-001) has not been addressed: the OAuth provider subject (sub) is a string, not a SQLite integer, and all ownership checks in orderService and paymentService would receive NaN.",
+      "schema.sql password_hash NOT NULL constraint (RISK-003) has not been migrated; any new user provisioning path without a bcrypt hash will fail with a hard constraint violation.",
+      "tests/helpers.js createTestUser() still calls authService.register with email/password credentials; orders.test.js and payments.test.js depend on this for token acquisition and will fail after authService is changed.",
+      "tests/auth.test.js tests the credential-based JWT flow and must be rewritten before OAuth tests can run.",
+      "No OAuth client library has been added to package.json; the jsonwebtoken and bcryptjs removal has not been performed."
+    ],
+    "recommendedActions": [
+      "Resolve the request.user.id integer resolution strategy before writing any OAuth middleware: define how the OAuth sub maps to a local users.id.",
+      "Create a schema migration that makes password_hash nullable or adds an oauth_subject TEXT UNIQUE column to the users table.",
+      "Rewrite tests/helpers.js to obtain test tokens through a mock OAuth server or a test-key token factory rather than via authService.register.",
+      "Rewrite tests/auth.test.js to cover OAuth authorization redirect, callback handling, token acceptance, and token rejection flows.",
+      "Update tests/orders.test.js, tests/payments.test.js, and tests/integration.test.js to use the new token acquisition mechanism from the rewritten helpers.js.",
+      "Define a credential migration strategy for existing users whose passwords are stored in password_hash before removing the login endpoint.",
+      "Add OAuth-specific environment variables to .env.example (client ID, client secret, authorization server URL, callback URI) and remove JWT_SECRET and JWT_EXPIRES_IN.",
+      "Run the full test suite (node --test inside shopflow-demo/) after each phase of the migration to confirm no regressions in order, payment, and product flows."
+    ]
+  }
+}
