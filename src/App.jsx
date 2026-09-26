@@ -3,6 +3,7 @@ import './App.css'
 import './polish.css'
 import { AnalysisPipeline, Sidebar, Topbar } from './components'
 import { useAnalysis } from './hooks/useAnalysis'
+import { repositories } from './data/repositories'
 import DashboardPage from './pages/DashboardPage'
 import AnalyzePage from './pages/AnalyzePage'
 import AnalysisResultsPage from './pages/AnalysisResultsPage'
@@ -16,11 +17,16 @@ import SettingsPage from './pages/SettingsPage'
 function App() {
   const [page, setPage] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [selectedRepository, setSelectedRepository] = useState(repositories[0])
   const { analysis, isLoading, analyze } = useAnalysis()
 
   const navigate = (nextPage) => {
     setPage(nextPage)
     setSidebarOpen(false)
+  }
+
+  const handleSelectRepository = (repo) => {
+    setSelectedRepository(repo)
   }
 
   const handleAnalyze = async (input) => {
@@ -31,9 +37,9 @@ function App() {
   const viewAnalysis = () => {
     if (!analysis) {
       handleAnalyze({
-        repository: 'ShopFlow',
-        branch: 'feature/oauth-migration',
-        changeDescription: 'Replace the existing email/password authentication flow with OAuth 2.0 authentication.',
+        repository: selectedRepository.name,
+        branch: selectedRepository.branch,
+        changeDescription: 'Replace the existing JWT authentication system with OAuth 2.0 authentication.',
       })
     } else {
       setPage('results')
@@ -56,7 +62,12 @@ function App() {
         />
       )}
       <div className="main-area">
-        <Topbar onNavigate={navigate} onOpenMenu={() => setSidebarOpen(true)} />
+        <Topbar
+          selectedRepository={selectedRepository}
+          onSelectRepo={handleSelectRepository}
+          onNavigate={navigate}
+          onOpenMenu={() => setSidebarOpen(true)}
+        />
         {isLoading ? (
           <div className="page-content">
             <AnalysisPipeline />
@@ -64,7 +75,11 @@ function App() {
         ) : page === 'dashboard' ? (
           <DashboardPage onNavigate={navigate} onViewAnalysis={viewAnalysis} />
         ) : page === 'analyze' ? (
-          <AnalyzePage onAnalyze={handleAnalyze} isAnalyzing={isLoading} />
+          <AnalyzePage
+            selectedRepository={selectedRepository}
+            onAnalyze={handleAnalyze}
+            isAnalyzing={isLoading}
+          />
         ) : page === 'results' ? (
           <AnalysisResultsPage
             analysis={analysis}

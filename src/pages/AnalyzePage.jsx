@@ -1,17 +1,32 @@
 import { useState } from 'react'
-import { ArrowRight, GitPullRequest, Info, Sparkles } from 'lucide-react'
-import { repositories } from '../data/mockData'
+import { ArrowRight, GitPullRequest, Info, Sparkles, Layers } from 'lucide-react'
+import { repositories, getRepositoryById } from '../data/repositories'
+import { changeScenarios, getDefaultScenario } from '../data/changeScenarios'
 import { PageHeader, SelectField } from '../components'
 
-export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
-  const [repo, setRepo] = useState(repositories[0].name)
-  const [branch, setBranch] = useState(repositories[0].branch)
-  const [change, setChange] = useState(
-    'Replace the existing email/password authentication flow with OAuth 2.0 authentication.'
-  )
+export default function AnalyzePage({ onAnalyze, isAnalyzing = false, selectedRepository }) {
+  const defaultRepo = selectedRepository || repositories[0]
+  const defaultScenario = getDefaultScenario()
+
+  const [selectedRepoId, setSelectedRepoId] = useState(defaultRepo.id)
+  const currentRepo = getRepositoryById(selectedRepoId)
+
+  const [branch, setBranch] = useState(currentRepo.branch)
+  const [selectedScenarioId, setSelectedScenarioId] = useState(defaultScenario.id)
+  const [change, setChange] = useState(defaultScenario.changeDescription)
   const [pr, setPr] = useState('')
-  const [context, setContext] = useState('')
+  const [context, setContext] = useState(defaultScenario.defaultContext)
   const [error, setError] = useState('')
+
+  const handleScenarioChange = (scenarioId) => {
+    setSelectedScenarioId(scenarioId)
+    const foundScenario = changeScenarios.find((s) => s.id === scenarioId)
+    if (foundScenario) {
+      setChange(foundScenario.changeDescription)
+      setContext(foundScenario.defaultContext || '')
+      if (error) setError('')
+    }
+  }
 
   const submit = (event) => {
     event.preventDefault()
@@ -20,7 +35,15 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
       return
     }
     setError('')
-    onAnalyze({ repository: repo, branch, changeDescription: change, pr, context })
+    onAnalyze({
+      repository: currentRepo.name,
+      repositoryId: currentRepo.id,
+      branch,
+      changeDescription: change,
+      scenarioId: selectedScenarioId,
+      pr,
+      context,
+    })
   }
 
   return (
@@ -28,7 +51,7 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
       <PageHeader
         eyebrow="Impact analysis / New"
         title="Analyze a proposed change"
-        description="Give IMPACT the context it needs to map what could move with your code."
+        description="Give IMPACT the context it needs to map what could move with your code in ShopFlow."
       />
       <form className="analysis-form panel" onSubmit={submit}>
         <div className="form-intro">
@@ -37,37 +60,67 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
           </div>
           <div>
             <h2>Change context</h2>
-            <p>This analysis uses repository metadata and mock results for now. IBM Bob will power this boundary next.</p>
+            <p>
+              Targeting <strong>{currentRepo.name}</strong> ({currentRepo.technology.join(', ')}).
+              Select a realistic scenario or enter custom proposed changes.
+            </p>
           </div>
         </div>
+
         <div className="form-row">
           <SelectField
             label="Repository"
-            value={repo}
-            options={repositories.map((item) => item.name)}
-            onChange={(value) => {
-              setRepo(value)
-              const matchedRepo = repositories.find((item) => item.name === value)
-              if (matchedRepo) setBranch(matchedRepo.branch)
+            value={currentRepo.id}
+            options={repositories.map((item) => ({ label: `${item.name} (${item.branch})`, value: item.id }))}
+            onChange={(val) => {
+              setSelectedRepoId(val)
+              const matched = getRepositoryById(val)
+              setBranch(matched.branch)
             }}
           />
           <SelectField
             label="Branch"
             value={branch}
-            options={
-              repositories.find((item) => item.name === repo)?.branch === branch
-                ? [branch, 'feature/oauth-migration', 'staging']
-                : [branch, 'main', 'develop']
-            }
+            options={[currentRepo.branch, 'feature/oauth-migration', 'staging']}
             onChange={setBranch}
           />
         </div>
+
+        <div className="field">
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}>
+            <Layers size={15} /> Select ShopFlow Change Scenario
+          </span>
+          <select
+            value={selectedScenarioId}
+            onChange={(e) => handleScenarioChange(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.65rem 0.85rem',
+              borderRadius: 'var(--radius-md, 8px)',
+              background: 'var(--bg-card, #111827)',
+              color: 'var(--text-primary, #f9fafb)',
+              border: '1px solid var(--border-color, #1f2937)',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+            }}
+          >
+            {changeScenarios.map((scen) => (
+              <option key={scen.id} value={scen.id}>
+                [{scen.id}] {scen.title}
+              </option>
+            ))}
+          </select>
+          <small className="field-hint">
+            <span>Choose from ground-truth scenarios defined for the current ShopFlow target repository.</span>
+          </small>
+        </div>
+
         <label className="field">
           <span>
             Proposed change <em>Required</em>
           </span>
           <textarea
-            rows="6"
+            rows="5"
             maxLength={500}
             value={change}
             onChange={(event) => {
@@ -77,10 +130,11 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
             placeholder="Describe the code change you are planning..."
           />
           <small className="field-hint">
-            <span>Example: Replace the existing authentication system with OAuth 2.0.</span>
+            <span>Example: Replace the existing JWT authentication system with OAuth 2.0 authentication.</span>
             <span>{change.length}/500</span>
           </small>
         </label>
+
         <label className="field">
           <span>
             Pull request / commit <em>Optional</em>
@@ -90,10 +144,11 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
             <input
               value={pr}
               onChange={(event) => setPr(event.target.value)}
-              placeholder="e.g. PR #482 or commit SHA"
+              placeholder="e.g. PR #104 or commit SHA"
             />
           </div>
         </label>
+
         <label className="field">
           <span>
             Additional context <em>Optional</em>
@@ -102,18 +157,20 @@ export default function AnalyzePage({ onAnalyze, isAnalyzing = false }) {
             rows="3"
             value={context}
             onChange={(event) => setContext(event.target.value)}
-            placeholder="What else should the analysis know?"
+            placeholder="What else should the analysis know about protected routes or identity contract?"
           />
         </label>
+
         {error && (
           <div className="form-error">
             <Info size={16} />
             {error}
           </div>
         )}
+
         <div className="form-footer">
           <span>
-            <Info size={15} /> Results are mocked for this prototype
+            <Info size={15} /> Analysis targets actual ShopFlow repository structure
           </span>
           <button className="button primary" type="submit" disabled={isAnalyzing}>
             {isAnalyzing ? 'Preparing report...' : 'Analyze change'} <ArrowRight size={16} />

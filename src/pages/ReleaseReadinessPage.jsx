@@ -22,16 +22,15 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
     status: 'REVIEW NEEDED',
     executionStatus: 'Not yet verified',
     verifiedCount: 0,
-    totalTestsCount: 8,
-    summaryText: 'High architecture and security risk requires validation of the new OAuth identity boundary.',
+    totalTestsCount: analysis.tests?.length || 6,
+    summaryText: `High architecture and security risk for "${analysis.changeDescription}" requires validation of affected ShopFlow modules.`,
     blockers: [
-      'OAuth callback state parameter validation tests are not yet executed.',
-      'Security review of redirect URI allowlists and token scope delegation is pending.',
+      'Proposed change has not been executed against regression test suites.',
+      'API contract validation and scope verification pending.',
     ],
     recommendedActions: [
-      'Execute P0 test suite (5 critical tests).',
-      'Configure production identity provider client secrets and callback URLs.',
-      'Obtain platform security team sign-off prior to production deployment.',
+      'Execute P0 test suites in tests/auth.test.js and tests/integration.test.js.',
+      'Verify API contract compatibility for affected routes.',
     ],
   }
 
@@ -52,7 +51,7 @@ export default function ReleaseReadinessPage({ analysis, onNavigate }) {
           <div>
             <span className="eyebrow">Release Decision Status</span>
             <h2>{readiness.status}</h2>
-            <p>{readiness.summaryText}</p>
+            <p>{readiness.summaryText || readiness.summary}</p>
           </div>
         </div>
         <div className="readiness-hero-right">

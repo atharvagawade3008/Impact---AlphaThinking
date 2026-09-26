@@ -26,12 +26,14 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
   }
 
   const nodes = analysis.impactMap?.nodes || [
-    { label: 'Proposed Change', value: 'OAuth 2.0 Migration', tone: 'cyan' },
-    { label: 'Direct Service', value: 'Auth Service (OAuthProvider)', tone: 'blue' },
-    { label: 'Downstream Core', value: 'Session Manager · Gateway', tone: 'amber' },
-    { label: 'User Surface', value: 'Login UI · Auth Checks', tone: 'amber' },
-    { label: 'Recommended Tests', value: '8 Tests (5 P0 / 3 P1)', tone: 'green', last: true },
+    { label: 'Proposed Change', value: analysis.scenarioTitle || 'OAuth 2.0 Migration', tone: 'cyan' },
+    { label: 'Direct Service', value: 'Authentication (authService.js)', tone: 'blue' },
+    { label: 'Auth Middleware', value: 'authMiddleware.js', tone: 'amber' },
+    { label: 'Protected API Routes', value: 'User / Order / Payment Routes', tone: 'amber' },
+    { label: 'Recommended Tests', value: `${analysis.tests?.length || 6} Tests`, tone: 'green', last: true },
   ]
+
+  const readiness = analysis.releaseReadiness || {}
 
   return (
     <div className="page-content results-page">
@@ -87,7 +89,7 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             }
           />
           {analysis.risks.map((risk) => (
-            <div className="risk-row" key={risk.title}>
+            <div className="risk-row" key={risk.id || risk.title}>
               <div className={`risk-score ${risk.tone}`}>
                 <strong>{risk.score}</strong>
                 <span>/100</span>
@@ -119,24 +121,24 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
           <div className="readiness-status">
             <CircleAlert size={20} />
             <div>
-              <strong>{analysis.readinessStatus || 'Review needed'}</strong>
-              <span>Not ready to ship · {analysis.verificationStatus || '0/8 verified'}</span>
+              <strong>{readiness.status || analysis.readinessStatus || 'REVIEW NEEDED'}</strong>
+              <span>Not ready to ship · {readiness.executionStatus || analysis.verificationStatus || '0/6 verified'}</span>
             </div>
           </div>
           <div className="readiness-block">
             <span>Why</span>
-            <p>High architecture and security risk requires validation of the new OAuth identity boundary.</p>
+            <p>{readiness.summaryText || readiness.summary || 'High architecture and security risk requires validation of affected modules.'}</p>
           </div>
           <div className="readiness-block">
             <span>Blocking issues</span>
-            <p>OAuth callback state parameter validation tests are not yet executed.</p>
+            <p>{readiness.blockers?.[0] || 'Proposed changes have not been executed against regression test suites.'}</p>
           </div>
           <div className="readiness-block">
             <span>Recommended actions</span>
-            <p>Run P0 tests, verify redirect allowlists, and get platform security sign-off.</p>
+            <p>{readiness.recommendedActions?.join(' ') || 'Execute P0 test suites and verify API contract compatibility.'}</p>
           </div>
           <button className="button secondary full-button" onClick={() => onNavigate('tests')}>
-            View recommended tests ({analysis.tests?.length || 8}) <ChevronRight size={15} />
+            View recommended tests ({analysis.tests?.length || 6}) <ChevronRight size={15} />
           </button>
         </section>
       </div>
@@ -178,13 +180,13 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             title="Recommended tests"
             action={
               <button className="text-button" onClick={() => onNavigate('tests')}>
-                All tests ({analysis.tests?.length || 8}) <ChevronRight size={14} />
+                All tests ({analysis.tests?.length || 6}) <ChevronRight size={14} />
               </button>
             }
           />
           <div className="test-list">
             {analysis.tests.map((test) => (
-              <div className="test-item" key={test.name}>
+              <div className="test-item" key={test.id || test.name}>
                 <span className="test-check">
                   <Check size={13} />
                 </span>

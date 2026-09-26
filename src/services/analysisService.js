@@ -74,7 +74,7 @@ export async function getAnalysis(id) {
 
   return await generateMockAnalysis({
     repository: 'ShopFlow',
-    branch: 'feature/oauth-migration',
-    changeDescription: 'Replace the existing email/password authentication flow with OAuth 2.0 authentication.',
+    branch: 'main',
+    changeDescription: 'Replace the existing JWT authentication system with OAuth 2.0 authentication.',
   })
 }

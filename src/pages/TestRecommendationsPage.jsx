@@ -19,6 +19,9 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
   }
 
   const tests = analysis.tests || []
+  const p0Count = tests.filter((t) => t.priority === 'P0').length
+  const p1Count = tests.filter((t) => t.priority !== 'P0').length
+  const primaryModule = analysis.summary?.find(([label]) => label === 'Modules affected')?.[2]?.split(', ')?.[0] || 'Authentication'
 
   return (
     <div className="page-content results-page">
@@ -33,17 +36,17 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
         <div>
           <span>Recommended Tests</span>
           <strong>{tests.length} suites</strong>
-          <small>5 P0 Critical, 3 P1 Recommended</small>
+          <small>{p0Count} P0 Critical, {p1Count} P1 Recommended</small>
         </div>
         <div>
           <span>Execution Status</span>
-          <strong>Not verified</strong>
+          <strong>{analysis.verificationStatus || 'Not verified'}</strong>
           <small>0 / {tests.length} executed</small>
         </div>
         <div>
           <span>Primary Surface</span>
-          <strong>OAuth Auth Boundary</strong>
-          <small>OAuthProvider & tokenManager</small>
+          <strong>{primaryModule} Module</strong>
+          <small>{analysis.repository} ({analysis.branch})</small>
         </div>
         <div>
           <span>Verification Engine</span>
@@ -58,13 +61,13 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
           title="Recommended Test Coverage"
           action={
             <span className="notice-pill">
-              <Info size={14} /> Execution Status: <strong>Not yet verified</strong>
+              <Info size={14} /> Execution Status: <strong>{analysis.verificationStatus || 'Not yet verified'}</strong>
             </span>
           }
         />
         <div className="test-cards-grid">
           {tests.map((test) => (
-            <div className="test-card panel-sub" key={test.name}>
+            <div className="test-card panel-sub" key={test.id || test.name}>
               <div className="test-card-top">
                 <StatusBadge tone={test.priority === 'P0' ? 'red' : 'amber'}>
                   {test.priority} Priority
@@ -77,7 +80,7 @@ export default function TestRecommendationsPage({ analysis, onNavigate }) {
               <h3 className="test-card-title">{test.name}</h3>
               <p className="test-card-reason">{test.reason}</p>
               <div className="test-card-foot">
-                <span>Component: <code>{test.component}</code></span>
+                <span>Target: <code>{test.component}</code> {test.testFile ? `(${test.testFile})` : ''}</span>
               </div>
             </div>
           ))}

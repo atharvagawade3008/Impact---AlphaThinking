@@ -19,12 +19,42 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
   }
 
   const nodes = analysis.impactMap?.nodes || [
-    { label: 'Proposed Change', value: 'OAuth 2.0 Migration', tone: 'cyan' },
-    { label: 'Direct Service', value: 'Auth Service (OAuthProvider)', tone: 'blue' },
-    { label: 'Downstream Core', value: 'Session Manager · Gateway', tone: 'amber' },
-    { label: 'User Surface', value: 'Login UI · Auth Checks', tone: 'amber' },
-    { label: 'Recommended Tests', value: '8 Tests (5 P0 / 3 P1)', tone: 'green', last: true },
+    { label: 'Proposed Change', value: analysis.scenarioTitle || 'OAuth 2.0 Migration', tone: 'cyan' },
+    { label: 'Direct Service', value: 'Authentication (authService.js)', tone: 'blue' },
+    { label: 'Auth Middleware', value: 'authMiddleware.js', tone: 'amber' },
+    { label: 'Protected API Routes', value: 'User / Order / Payment Routes', tone: 'amber' },
+    { label: 'Recommended Tests', value: `${analysis.tests?.length || 6} Tests`, tone: 'green', last: true },
   ]
+
+  const layers = analysis.dependencyPropagation || [
+    {
+      level: 'Level 1',
+      badgeTone: 'cyan',
+      title: 'Directly Affected Files',
+      description: 'src/services/authService.js, src/middleware/authMiddleware.js, src/controllers/authController.js, src/routes/authRoutes.js, src/utils/jwt.js, .env.example',
+    },
+    {
+      level: 'Level 2',
+      badgeTone: 'blue',
+      title: 'Affected Modules & Middleware',
+      description: 'Authentication, Middleware, Users, Orders, Payments',
+    },
+    {
+      level: 'Level 3',
+      badgeTone: 'amber',
+      title: 'Affected API Endpoints',
+      description: 'POST /api/auth/login, POST /api/auth/register, GET /api/users/me, POST /api/orders, POST /api/payments',
+    },
+    {
+      level: 'Level 4',
+      badgeTone: 'green',
+      title: 'Affected Test Harness & Suites',
+      description: 'tests/auth.test.js, tests/integration.test.js, tests/orders.test.js, tests/payments.test.js, tests/helpers.js',
+    },
+  ]
+
+  const directCount = analysis.files?.filter((f) => f[1] === 'Directly Affected').length || 6
+  const indirectCount = analysis.files?.filter((f) => f[1] === 'Indirectly Affected').length || 8
 
   return (
     <div className="page-content results-page">
@@ -39,7 +69,7 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
         <SectionHeading
           eyebrow="Dependency surface"
           title="Architectural Impact Map"
-          action={<span className="muted-label">5 relationship layers mapped</span>}
+          action={<span className="muted-label">{nodes.length} relationship layers mapped</span>}
         />
         <div className="impact-map">
           {nodes.map((node, index) => (
@@ -58,34 +88,15 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
         <section className="panel">
           <SectionHeading eyebrow="Relationship breakdown" title="Dependency Propagation" />
           <div className="dependency-layers">
-            <div className="layer-item">
-              <span className="layer-badge cyan">Level 1</span>
-              <div>
-                <strong>Direct Service Modification</strong>
-                <p><code>src/auth/OAuthProvider.ts</code> replaces legacy password hash logic with authorization code exchange.</p>
+            {layers.map((layer) => (
+              <div className="layer-item" key={layer.level}>
+                <span className={`layer-badge ${layer.badgeTone || 'cyan'}`}>{layer.level}</span>
+                <div>
+                  <strong>{layer.title}</strong>
+                  <p><code>{layer.description}</code></p>
+                </div>
               </div>
-            </div>
-            <div className="layer-item">
-              <span className="layer-badge blue">Level 2</span>
-              <div>
-                <strong>Downstream Core Services & Middleware</strong>
-                <p><code>src/session/tokenManager.ts</code> and <code>src/middleware/authCheck.ts</code> consume OAuth bearer tokens.</p>
-              </div>
-            </div>
-            <div className="layer-item">
-              <span className="layer-badge amber">Level 3</span>
-              <div>
-                <strong>User Surface & Entry Points</strong>
-                <p><code>LoginForm.tsx</code> and OAuth callback route (<code>oauthCallback.ts</code>) present the new authentication entry flow.</p>
-              </div>
-            </div>
-            <div className="layer-item">
-              <span className="layer-badge green">Level 4</span>
-              <div>
-                <strong>Required Test Suite Validation</strong>
-                <p>8 recommended test suites cover code exchange, token expiration, unauthorized access, and logout handling.</p>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
@@ -93,23 +104,31 @@ export default function ImpactMapPage({ analysis, onNavigate }) {
           <SectionHeading eyebrow="Surface summary" title="Impact Metrics" />
           <div className="impact-metrics-list">
             <div className="impact-metric-row">
-              <span className="metric-label">Affected Directories</span>
-              <span className="metric-val">6 directories</span>
+              <span className="metric-label">Target Repository</span>
+              <span className="metric-val">{analysis.repository} ({analysis.branch})</span>
             </div>
             <div className="impact-metric-row">
-              <span className="metric-label">Direct Service Impact</span>
-              <span className="metric-val text-red">High (Authentication)</span>
+              <span className="metric-label">Directly Affected Files</span>
+              <span className="metric-val text-red">{directCount} files</span>
             </div>
             <div className="impact-metric-row">
-              <span className="metric-label">Transitive Dependencies</span>
-              <span className="metric-val">2 external libraries</span>
+              <span className="metric-label">Indirectly Affected Files</span>
+              <span className="metric-val">{indirectCount} files</span>
             </div>
             <div className="impact-metric-row">
-              <span className="metric-label">Test Coverage Gap</span>
-              <span className="metric-val text-amber">0/8 verified</span>
+              <span className="metric-label">Files Currently Changed</span>
+              <span className="metric-val text-cyan">0 (Uncommitted proposed change)</span>
+            </div>
+            <div className="impact-metric-row">
+              <span className="metric-label">Test Verification Status</span>
+              <span className="metric-val text-amber">{analysis.verificationStatus}</span>
             </div>
           </div>
-          <button className="button secondary full-button" style={{ marginTop: '1.25rem' }} onClick={() => onNavigate('risk')}>
+          <button
+            className="button secondary full-button"
+            style={{ marginTop: '1.25rem' }}
+            onClick={() => onNavigate('risk')}
+          >
             View Risk Analysis <ArrowRight size={15} />
           </button>
         </section>
