@@ -1,4 +1,5 @@
 import bobData from '../../docs/bob-change-impact-analysis.json'
+import { evaluateReleaseReadiness } from './releaseReadinessEvaluator'
 
 /**
  * IBM Bob Analysis Provider & Adapter
@@ -115,6 +116,8 @@ export function transformBobAnalysis(input = {}) {
     }
   })
 
+  // Build the canonical result first (without evaluator), then augment
+  // releaseReadiness with the full structured evaluation.
   const readiness = bobData.releaseReadiness || {}
 
   const canonicalResult = {
@@ -220,17 +223,6 @@ export function transformBobAnalysis(input = {}) {
     risks,
     tests,
 
-    releaseReadiness: {
-      status: readiness.status === 'REVIEW_NEEDED' ? 'REVIEW NEEDED' : readiness.status || 'REVIEW NEEDED',
-      summary: readiness.reason,
-      summaryText: readiness.reason,
-      executionStatus: 'Not yet verified',
-      verifiedCount: 0,
-      totalTestsCount: tests.length,
-      blockers: readiness.blockers || [],
-      recommendedActions: readiness.recommendedActions || [],
-    },
-
     metadata: {
       analyzedAt,
       analysisSource: 'IBM Bob',
@@ -241,7 +233,14 @@ export function transformBobAnalysis(input = {}) {
       commit: input.commit || undefined,
       context: input.context || undefined,
     },
+
+    // Placeholder — replaced below by the evaluator output
+    releaseReadiness: null,
   }
+
+  // Augment with the full structured evaluation from the evaluator.
+  // evaluateReleaseReadiness needs the complete canonical result first.
+  canonicalResult.releaseReadiness = evaluateReleaseReadiness(canonicalResult)
 
   return canonicalResult
 }
