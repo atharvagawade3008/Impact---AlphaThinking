@@ -305,3 +305,29 @@ button:disabled { cursor: progress; opacity: .68; }
   .action-footer { padding: 14px 16px 16px; }
 }
 
+  /* Keep desktop navigation in the viewport while the page content scrolls. */
+  @media (min-width: 721px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      height: 100dvh;
+      min-height: 0;
+      z-index: 5;
+    }
+    .sidebar nav {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .sidebar-bottom { flex-shrink: 0; }
+    .main-area { margin-left: 248px; }
+  }
+  @media (min-width: 721px) and (max-width: 1000px) {
+    .main-area { margin-left: 220px; }
+  }
+  @media (max-width: 720px) {
+    .main-area { margin-left: 0; }
+  }
+
