@@ -1,0 +1,26 @@
+{
+  "name": "shopflow-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A small e-commerce backend for code-impact analysis demonstrations.",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/db/seed.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.2.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.4"
+  }
+}
