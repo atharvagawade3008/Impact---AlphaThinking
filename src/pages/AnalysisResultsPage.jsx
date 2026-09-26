@@ -219,8 +219,8 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
                   <strong>{test.name}</strong>
                   <p>{test.reason}</p>
                 </div>
-                <StatusBadge tone={test.priority === 'P0' ? 'red' : 'amber'}>
-                  {test.priority}
+                <StatusBadge tone={test.priority === 'HIGH' || test.displayPriority === 'P0' ? 'red' : 'amber'}>
+                  {test.displayPriority || (test.priority === 'HIGH' ? 'P0' : 'P1')}
                 </StatusBadge>
               </div>
             ))}
