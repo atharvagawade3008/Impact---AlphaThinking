@@ -1,4 +1,4 @@
-import { Check, ChevronRight, CircleAlert } from 'lucide-react'
+import { Check, ChevronRight, CircleAlert, Bot } from 'lucide-react'
 import {
   AnalysisResultHeader,
   EmptyState,
@@ -25,12 +25,12 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
     )
   }
 
-  const nodes = analysis.impactMap?.nodes || [
+  const nodes = analysis.impact?.nodes || [
     { label: 'Proposed Change', value: analysis.scenarioTitle || 'OAuth 2.0 Migration', tone: 'cyan' },
     { label: 'Direct Service', value: 'Authentication (authService.js)', tone: 'blue' },
     { label: 'Auth Middleware', value: 'authMiddleware.js', tone: 'amber' },
     { label: 'Protected API Routes', value: 'User / Order / Payment Routes', tone: 'amber' },
-    { label: 'Recommended Tests', value: `${analysis.tests?.length || 6} Tests`, tone: 'green', last: true },
+    { label: 'Recommended Tests', value: `${analysis.tests?.length || 13} Tests`, tone: 'green', last: true },
   ]
 
   const readiness = analysis.releaseReadiness || {}
@@ -43,6 +43,31 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
         onNavigate={onNavigate}
         onBack={onBack}
       />
+
+      {/* Analysis Source Metadata Banner */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justify: 'space-between',
+          padding: '0.6rem 1rem',
+          borderRadius: '8px',
+          background: 'rgba(56, 189, 248, 0.08)',
+          border: '1px solid rgba(56, 189, 248, 0.2)',
+          marginBottom: '1rem',
+          fontSize: '0.8rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Bot size={16} style={{ color: '#38bdf8' }} />
+          <span>
+            Powered by <strong>{analysis.analysisSource || 'IBM Bob'}</strong> static code analysis
+          </span>
+        </div>
+        <span style={{ color: 'var(--text-muted)' }}>
+          {analysis.generatedBy || 'Static source-code analysis'}
+        </span>
+      </div>
 
       <section className="summary-strip">
         {analysis.summary.map(([label, value, detail]) => (
@@ -84,11 +109,11 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             title="Risk analysis"
             action={
               <button className="text-button" onClick={() => onNavigate('risk')}>
-                View all risks <ChevronRight size={14} />
+                View all risks ({analysis.risks?.length || 7}) <ChevronRight size={14} />
               </button>
             }
           />
-          {analysis.risks.map((risk) => (
+          {analysis.risks.slice(0, 4).map((risk) => (
             <div className="risk-row" key={risk.id || risk.title}>
               <div className={`risk-score ${risk.tone}`}>
                 <strong>{risk.score}</strong>
@@ -122,12 +147,12 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             <CircleAlert size={20} />
             <div>
               <strong>{readiness.status || analysis.readinessStatus || 'REVIEW NEEDED'}</strong>
-              <span>Not ready to ship · {readiness.executionStatus || analysis.verificationStatus || '0/6 verified'}</span>
+              <span>Not ready to ship · {readiness.executionStatus || analysis.verificationStatus || '0/13 verified'}</span>
             </div>
           </div>
           <div className="readiness-block">
             <span>Why</span>
-            <p>{readiness.summaryText || readiness.summary || 'High architecture and security risk requires validation of affected modules.'}</p>
+            <p>{readiness.summaryText || readiness.summary || 'Core authentication mechanism replacement requires technical review and test validation.'}</p>
           </div>
           <div className="readiness-block">
             <span>Blocking issues</span>
@@ -135,10 +160,10 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
           </div>
           <div className="readiness-block">
             <span>Recommended actions</span>
-            <p>{readiness.recommendedActions?.join(' ') || 'Execute P0 test suites and verify API contract compatibility.'}</p>
+            <p>{readiness.recommendedActions?.join(' ') || 'Execute recommended test suites and verify API contract compatibility.'}</p>
           </div>
           <button className="button secondary full-button" onClick={() => onNavigate('tests')}>
-            View recommended tests ({analysis.tests?.length || 6}) <ChevronRight size={15} />
+            View recommended tests ({analysis.tests?.length || 13}) <ChevronRight size={15} />
           </button>
         </section>
       </div>
@@ -180,12 +205,12 @@ export default function AnalysisResultsPage({ analysis, onBack, onNavigate }) {
             title="Recommended tests"
             action={
               <button className="text-button" onClick={() => onNavigate('tests')}>
-                All tests ({analysis.tests?.length || 6}) <ChevronRight size={14} />
+                All tests ({analysis.tests?.length || 13}) <ChevronRight size={14} />
               </button>
             }
           />
           <div className="test-list">
-            {analysis.tests.map((test) => (
+            {analysis.tests.slice(0, 6).map((test) => (
               <div className="test-item" key={test.id || test.name}>
                 <span className="test-check">
                   <Check size={13} />

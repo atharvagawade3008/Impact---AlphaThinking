@@ -1,16 +1,16 @@
 /**
  * Analysis Service Interface
  *
- * The analysis service is intentionally provider-agnostic.
- * The current implementation uses mock data via mockAnalysisProvider.
- * A future IBM Bob-powered provider should return the same canonical analysis result structure.
+ * Provider-agnostic service interface connecting UI components to analysis engines.
+ * Primary provider for ShopFlow OAuth analysis: IBM Bob Provider (bobAnalysisProvider).
+ * Fallback provider: Mock Analysis Provider (mockAnalysisProvider).
  */
 
+import { generateBobAnalysis } from './bobAnalysisProvider'
 import { generateMockAnalysis } from './mockAnalysisProvider'
 
 /**
  * Validates analysis input parameters before submitting.
- *
  * @param {Object} input
  * @throws {Error} If required parameters are missing or invalid.
  */
@@ -37,28 +37,22 @@ function validateAnalysisInput(input) {
 
 /**
  * Analyzes a proposed code change asynchronously.
- *
- * Expected input structure:
- * {
- *   repository: string (required),
- *   branch: string (required),
- *   changeDescription: string (required),
- *   pullRequest?: string,
- *   commit?: string,
- *   context?: string
- * }
+ * Uses real IBM Bob analysis artifact for ShopFlow OAuth migration,
+ * with fallback to mock provider for other custom inputs if needed.
  *
  * @param {Object} input
  * @returns {Promise<Object>} Canonical Analysis Result structure
  */
 export async function analyzeChange(input = {}) {
-  // Validate input parameters
   validateAnalysisInput(input)
 
-  // Currently dispatches to mockAnalysisProvider.
-  // FUTURE IBM BOB INTEGRATION POINT:
-  // return await ibmBobAnalysisProvider.analyze(input);
-  return await generateMockAnalysis(input)
+  try {
+    // Attempt real IBM Bob analysis provider
+    return await generateBobAnalysis(input)
+  } catch (err) {
+    console.warn('IBM Bob provider error, falling back to mock provider:', err)
+    return await generateMockAnalysis(input)
+  }
 }
 
 /**
@@ -72,9 +66,17 @@ export async function getAnalysis(id) {
     throw new Error('Analysis ID is required to retrieve result.')
   }
 
-  return await generateMockAnalysis({
-    repository: 'ShopFlow',
-    branch: 'main',
-    changeDescription: 'Replace the existing JWT authentication system with OAuth 2.0 authentication.',
-  })
+  try {
+    return await generateBobAnalysis({
+      repository: 'ShopFlow',
+      branch: 'main',
+      changeDescription: 'Replace the existing JWT authentication system with OAuth 2.0 authentication.',
+    })
+  } catch (err) {
+    return await generateMockAnalysis({
+      repository: 'ShopFlow',
+      branch: 'main',
+      changeDescription: 'Replace the existing JWT authentication system with OAuth 2.0 authentication.',
+    })
+  }
 }
