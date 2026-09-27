@@ -189,4 +189,4 @@ through the provider and centralized data layer.
 
 ## Team
 
-IBM Hackathon 2026 — IMPACT project
+IMPACT project — AlphaThinking 
